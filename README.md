@@ -64,6 +64,7 @@ An example of a open weight model that appears to work with this workflow withou
 - `"This is a cross-file edit. Each section of the file is delimited by the DEL character. Don't change anything, except: ..."`
 - `"This is a cross-file edit. Each section is delimited by DEL. Don't change anything, except: ..."`
 - `"This is a cross file edit. Rewrite everything exactly the same, except these 3 instructions: ..."`
+- `"Each file section is delimited by the DEL character, the filename is at the top. Don't change the format, keep the same delimiters at the same boundaries of each section. Rewrite everything exactly the same, except: ..."`
 
 ## Why Not wgrep?
 
