@@ -10,6 +10,10 @@ ripgrep-edit enables *razor coding* by allowing LLM workflows to operate with ra
 - 💾 Apply changes back to original files  
 - 🛠️ Works with any editor via shell command  
 
+## Demo
+
+> ![ripgrep-edit `"deduplicate the dedup_by"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-dedup_slashes.webm)
+
 ## Build
 
 ```bash
