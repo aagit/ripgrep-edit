@@ -46,6 +46,12 @@ struct Args {
     context_separator: String,
 }
 
+fn dedup_slashes(line: &str) -> String {
+    let mut chars = line.chars().collect::<Vec<char>>();
+    chars.dedup_by(|a, b| *a == '/' && *a == *b);
+    chars.iter().collect::<String>()
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -110,9 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             writeln!(file, "{after_colon}")?;
         } else {
-            let mut line = line.chars().collect::<Vec<char>>();
-	    line.dedup_by(|a, b| *a == '/' && *a == *b);
-	    let line = line.iter().collect::<String>();
+            let line = dedup_slashes(&line);
             writeln!(file, "{line}")?;
         }
     }
@@ -232,9 +236,7 @@ fn parse_file_ranges<'a>(
         // Check if line is a file path
         if !line.chars().next().is_some_and(|c| c.is_ascii_digit()) {
             assert!(prev_line_empty);
-            let mut line = line.chars().collect::<Vec<char>>();
-	    line.dedup_by(|a, b| *a == '/' && *a == *b);
-	    let line = line.iter().collect::<String>();
+            let line = dedup_slashes(&line);
             if Path::new(&line).exists() {
                 if let Some(ref current) = current_file {
                     if current != &line {
@@ -301,9 +303,7 @@ fn parse_modified_file(
             prev_line_empty = false;
             continue;
         }
-        let mut normalized_line = line.chars().collect::<Vec<char>>();
-	normalized_line.dedup_by(|a, b| *a == '/' && *a == *b);
-	let normalized_line = normalized_line.iter().collect::<String>();
+        let normalized_line = dedup_slashes(&line);
         if file_ranges.contains_key(&normalized_line) {
             assert!(prev_line_empty);
             if !current_file.is_empty() {
