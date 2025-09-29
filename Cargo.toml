@@ -1,0 +1,13 @@
+[package]
+name = "ripgrep-edit"
+version = "0.1.0"
+edition = "2024"
+description = "Edit ripgrep search results across multiple files"
+readme = "README.md"
+repository = "https://gitlab.com/aarcange/ripgrep-edit"
+license = "GPL-3.0-or-later OR AGPL-3.0-or-later"
+keywords = ["ripgrep", "gptel", "gptel-rewrite", "llm"]
+
+[dependencies]
+tempfile = "3.23.0"
+clap = { version = "4.5.48", features = ["derive"] }
