@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::process::exit(1);
         }
     }
-    let output_str = String::from_utf8(output.unwrap().stdout)?;
+    let output_str = String::from_utf8_lossy(&output.unwrap().stdout).into_owned();
     if output_str.trim().is_empty() {
         eprintln!("No results found.");
         std::process::exit(0);
