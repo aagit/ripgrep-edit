@@ -53,16 +53,32 @@ Large codebases challenge LLMs due to context limits. Traditional vibe coding to
 
 The goal is to optimize the LLM’s most demanding task — writing code — by minimizing perplexity and maximizing efficiency.
 
+## How to use
+
 This works best with tools like [`gptel-rewrite`](https://github.com/karthink/gptel), where extra context can be included for more complex refactorings.
 
-To be effective, `ripgrep-edit` requires a well-crafted prompt (like those used in `gptel-rewrite`) to guide the LLM.
+To be effective, `ripgrep-edit` requires a well-crafted prompt:
 
-## Model Compatibility
+```
+This is a cross-file edit:
+- Rewrite everything exactly the same, except: the required change
+- Do not add markdown fences.
+- Do not ask for further clarification.
+- Keep the filename at the start of each file and the DEL character between different sections of each file.
+```
 
-An example of a open weight model that appears to work with this workflow without requiring fine tuning:  
-**Qwen3-Coder-30B-A3B-Instruct**
+## ripgrep-edit.el
 
-## gptel-rewrite Directive Examples
+- Provides `ripgrep-edit` and `ripgrep-edit-git` functions
+
+```elisp
+(load-file "~/.../ripgrep-edit/emacs/ripgrep-edit.el")
+(setq-default ripgrep-edit-executable "~/.../ripgrep-edit/target/release/ripgrep-edit")
+```
+
+## Directive Examples
+
+The below directives can be used if using a generic rewrite prompt:
 
 - `"This is a cross-file edit. Rewrite everything exactly the same, except: ..."`
 - `"This is a cross-file edit. Each section of the file is delimited by the DEL character. Don't change anything, except: ..."`
