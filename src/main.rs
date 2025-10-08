@@ -42,7 +42,7 @@ struct Args {
     require_all_files: bool,
 
     /// context_separator character
-    #[clap(long, default_value = "\x7F")]
+    #[clap(long, default_value = "-- DO NOT DELETE THIS SEPARATOR --")]
     context_separator: String,
 }
 
@@ -106,6 +106,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut file_ranges: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
     file_ranges.extend(parse_file_ranges(lines, context_separator));
 
+    let mut first_file_written = false;
+
     for line in output_str.lines() {
         if line.starts_with(|c: char| c.is_ascii_digit()) {
             let colon_pos = line.find(':').unwrap();
@@ -117,8 +119,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             writeln!(file, "{after_colon}")?;
         } else {
             let line = dedup_slashes(&line);
+            // Check if this line matches a file in file_ranges and is not the first file
+            let is_file_match = file_ranges.contains_key(&line);
+            if is_file_match {
+                if first_file_written {
+                    writeln!(file, "{context_separator}\n")?;
+                } else {
+                    first_file_written = true;
+                }
+            }
             writeln!(file, "{line}")?;
         }
+    }
+
+    // Write context separator after the last line of the last section if needed
+    if first_file_written {
+        writeln!(file, "{context_separator}")?;
     }
     file.flush()?;
 
@@ -222,7 +238,6 @@ fn parse_file_ranges<'a>(
             continue;
         }
 
-        // Check if line contains the DEL character
         if line == context_separator {
             let current = current_file.as_ref().unwrap();
             if let Some(range) = current_range {
@@ -289,7 +304,8 @@ fn parse_modified_file(
     let mut current_file = String::new();
     let mut current_lines: Vec<String> = Vec::new();
     let mut current_block: Vec<Vec<String>> = Vec::new();
-    let mut prev_line_empty = true;
+    let mut prev_line_empty = false;
+    let mut pprev_line_separator = false;
 
     for line in reader.lines() {
         let line = line?;
@@ -301,20 +317,21 @@ fn parse_modified_file(
             current_lines.clear();
 
             prev_line_empty = false;
+            pprev_line_separator = true;
             continue;
         }
         let normalized_line = dedup_slashes(&line);
         if file_ranges.contains_key(&normalized_line) {
-            assert!(prev_line_empty);
             if !current_file.is_empty() {
+                assert!(prev_line_empty);
+                assert!(pprev_line_separator);
                 assert!(!current_lines.is_empty());
-
-                assert_eq!(current_lines.pop().unwrap(), "");
-                current_block.push(current_lines.clone());
-                current_lines.clear();
 
                 changes.insert(current_file.clone(), current_block.clone());
                 current_block.clear();
+            } else {
+                assert!(!prev_line_empty);
+                assert!(!pprev_line_separator);
             }
             current_file = normalized_line.to_string();
             prev_line_empty = false;
@@ -322,14 +339,16 @@ fn parse_modified_file(
             prev_line_empty = line.is_empty();
             current_lines.push(line);
         }
+        if !prev_line_empty {
+            pprev_line_separator = false;
+        }
     }
 
-    if !current_file.is_empty()
-        && file_ranges.contains_key(&current_file)
-        && !current_lines.is_empty()
-    {
-        current_block.push(current_lines.clone());
-        changes.insert(current_file, current_block);
+    if !current_file.is_empty() {
+        assert!(current_lines.is_empty());
+        assert!(!prev_line_empty);
+        assert!(pprev_line_separator);
+        changes.insert(current_file.clone(), current_block.clone());
     }
 
     Ok(changes)

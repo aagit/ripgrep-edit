@@ -63,9 +63,10 @@ To be effective, `ripgrep-edit` requires a well-crafted prompt:
 ```
 This is a cross-file edit:
 - Rewrite everything exactly the same, except: the required change
-- Do not add markdown fences.
-- Do not ask for further clarification.
-- Keep the filename at the start of each file and the DEL character between different sections of each file.
+- Keep the filename at the start of each file
+- Keep the separator at the end of each file section
+- Do not add markdown fences
+- Do not ask clarification
 ```
 
 ## ripgrep-edit.el
