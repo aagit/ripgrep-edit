@@ -26,10 +26,9 @@
 
 (defun ripgrep-edit--collect-extra-args ()
   "Collect extra arguments for ripgrep-edit command."
-  (when (equal current-prefix-arg '(4))
-    (let ((extra-args (read-string "Extra args: ")))
-      (unless (string-empty-p extra-args)
-	extra-args))))
+  (let ((extra-args (read-string "Extra args: ")))
+    (unless (string-empty-p extra-args)
+      extra-args)))
 
 (defun ripgrep-edit--run-command (regexp path extra-args)
   "Run ripgrep-edit with REGEXP, PATH, and EXTRA-ARGS."
@@ -77,7 +76,7 @@
 	  (buffer-file (buffer-file-name)))
       (let ((search-path (funcall get-path-fn path buffer-file)))
 	(let ((search-path (expand-file-name (read-directory-name "Path: " search-path)))
-	      (extra-args (or extra-args (ripgrep-edit--collect-extra-args))))
+	      (extra-args (ripgrep-edit--collect-extra-args)))
 	  (ripgrep-edit--run-command search-regexp search-path extra-args))))))
 
 (defun ripgrep-edit (&optional regexp path extra-args)
