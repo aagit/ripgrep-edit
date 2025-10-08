@@ -50,11 +50,6 @@
 
 (defun ripgrep-edit--get-git-path (path buffer-file)
   "Get the git repository root as search path for ripgrep-edit, using PATH or buffer file location."
-
-  (message "ok")
-  (when (fboundp 'sleep)
-    (sleep 1))
-
   (or path
       (if buffer-file
 	  (let ((git-root (locate-dominating-file buffer-file ".git")))
