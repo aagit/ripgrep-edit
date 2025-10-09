@@ -86,11 +86,11 @@
 
 (defun gptel-rewrite-ripgrep-edit ()
   (when (string-match-p "\\.ripgrep-edit" (buffer-name))
-    (concat "This is a cross-file edit:\n"
+    (concat "You are a careful programmer. Rewrite cross-file snippnets:\n"
 	    "- Rewrite everything exactly the same, "
 	    "except: the required change\n"
 	    "- Keep the filename at the start of each file\n"
-	    "- Keep the separator at the end of each file section\n"
+	    "- Keep the separator at the end of all snippnets\n"
 	    "- Do not add markdown fences\n"
 	    "- Do not ask clarification")))
 (add-hook 'gptel-rewrite-directives-hook #'gptel-rewrite-ripgrep-edit)
