@@ -11,7 +11,7 @@ use std::path::Path;
 use std::process::Command;
 
 #[derive(Parser, Debug, Default)]
-#[clap(author)]
+#[clap(version)]
 struct Args {
     /// Regex pattern to search for
     #[clap(short = 'e', long)]
