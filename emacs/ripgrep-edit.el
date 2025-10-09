@@ -85,7 +85,7 @@
   (ripgrep-edit--invoke regexp path extra-args #'ripgrep-edit--get-git-path))
 
 (defun gptel-rewrite-ripgrep-edit ()
-  (when (string-match-p "\.ripgrep-edit" (buffer-name))
+  (when (string-match-p "\\.ripgrep-edit" (buffer-name))
     (concat "This is a cross-file edit:\n"
 	    "- Rewrite everything exactly the same, "
 	    "except: the required change\n"
