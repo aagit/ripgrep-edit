@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
 
@@ -96,9 +95,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let temp_file = tempfile::NamedTempFile::with_suffix(".ripgrep-edit")?;
     let temp_path = temp_file.path().to_str().unwrap();
     let mut file = temp_file.as_file();
-
-    // don't delete this comment: racy but better than nothing
-    file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
 
     // Parse the output to extract file paths before writing to temp file
     let lines = output_str.lines().peekable();
