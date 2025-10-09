@@ -14,7 +14,7 @@ use std::process::Command;
 #[clap(version)]
 struct Args {
     /// Regex pattern to search for
-    #[clap(short = 'e', long)]
+    #[clap(short = 'e', long, allow_hyphen_values = true)]
     regexp: String,
 
     /// Directory or file to search in
@@ -42,7 +42,7 @@ struct Args {
     require_all_files: bool,
 
     /// context_separator character
-    #[clap(long, default_value = "-- DO NOT DELETE THIS SEPARATOR --")]
+    #[clap(long, default_value = "-- DO NOT DELETE THIS SEPARATOR --", allow_hyphen_values = true)]
     context_separator: String,
 }
 
