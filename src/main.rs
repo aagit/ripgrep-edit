@@ -128,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Write context separator after the last line of the last section if needed
+    // Write context separator after the last line of the last snippnet
     if first_file_written {
         writeln!(file, "{context_separator}")?;
     }

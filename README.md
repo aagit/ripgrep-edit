@@ -6,7 +6,7 @@ ripgrep-edit enables *razor coding* by allowing LLM workflows to operate with ra
 
 - 🔍 Search using `ripgrep` with configurable context lines  
 - 📄 Present matches in a clean, linear, easy-to-read format  
-- ✏️ Edit all matched file sections in a single temporary file  
+- ✏️ Edit all matched code snippets in a single temporary file  
 - 💾 Apply changes back to original files  
 - 🛠️ Works with any editor via shell command  
 
@@ -45,7 +45,7 @@ cargo build --release
 Large codebases challenge LLMs due to context limits. Traditional vibe coding tools require reading snippets of multiple large files through the LLM agentic workflow.
 
 `ripgrep-edit` solves this by:
-- 🔄 **Linearizing** code sections from multiple files
+- 🔄 **Linearizing** code snippets from multiple files
 - 📌 **Preserving context** around each match
 - 🧠 **Enabling precise edits** via LLMs or editors
 - 🔄 **Reapplying changes to original files**
