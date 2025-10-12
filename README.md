@@ -30,7 +30,7 @@ cargo build --release
 - `-A, --after-context <N>`: Lines of context to show after each match  
 - `-B, --before-context <N>`: Lines of context to show before each match  
 - `--require-all-files`: Require all files in ripgrep output to be present in the edited file  
-- `--context-separator <CHAR>`: Separator string between snippnets
+- `--context-separator <SEPARATOR>`: Separator string between snippnets
 
 ## Examples
 
