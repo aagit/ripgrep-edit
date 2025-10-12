@@ -30,7 +30,7 @@ cargo build --release
 - `-A, --after-context <N>`: Lines of context to show after each match  
 - `-B, --before-context <N>`: Lines of context to show before each match  
 - `--require-all-files`: Require all files in ripgrep output to be present in the edited file  
-- `--context-separator <CHAR>`: Separator string between sections (default: `DEL`)
+- `--context-separator <CHAR>`: Separator string between snippnets
 
 ## Examples
 
@@ -77,16 +77,6 @@ You are a careful programmer. Rewrite cross-file snippnets:
 (load-file "~/.../ripgrep-edit/emacs/ripgrep-edit.el")
 (setq-default ripgrep-edit-executable "~/.../ripgrep-edit/target/release/ripgrep-edit")
 ```
-
-## Directive Examples
-
-The below directives can be used if using a generic rewrite prompt:
-
-- `"This is a cross-file edit. Rewrite everything exactly the same, except: ..."`
-- `"This is a cross-file edit. Each section of the file is delimited by the DEL character. Don't change anything, except: ..."`
-- `"This is a cross-file edit. Each section is delimited by DEL. Don't change anything, except: ..."`
-- `"This is a cross file edit. Rewrite everything exactly the same, except these 3 instructions: ..."`
-- `"Each file section is delimited by the DEL character, the filename is at the top. Don't change the format, keep the same delimiters at the same boundaries of each section. Rewrite everything exactly the same, except: ..."`
 
 ## Why Not wgrep?
 
