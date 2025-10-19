@@ -124,7 +124,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     first_file_written = true;
                 }
             }
-            writeln!(file, "{line}")?;
+	    if is_file_match || &line == context_separator {
+		writeln!(file, "{line}")?;
+	    }
         }
     }
 
@@ -330,6 +332,7 @@ fn parse_modified_file(
                 assert!(!pprev_line_separator);
             }
             current_file = normalized_line.to_string();
+            current_lines.clear();
             prev_line_empty = false;
         } else {
             prev_line_empty = line.is_empty();
