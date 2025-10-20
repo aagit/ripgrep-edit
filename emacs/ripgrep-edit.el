@@ -77,12 +77,21 @@
 (defun ripgrep-edit (&optional regexp path extra-args)
   "Invoke ripgrep-edit with REGEXP, PATH and EXTRA-ARGS."
   (interactive)
+  (ripgrep-edit--warn-if-auto-revert-disabled)
   (ripgrep-edit--invoke regexp path extra-args #'ripgrep-edit--get-path))
 
 (defun ripgrep-edit-git (&optional regexp path extra-args)
   "Invoke ripgrep-edit-git with REGEXP, PATH and EXTRA-ARGS."
   (interactive)
+  (ripgrep-edit--warn-if-auto-revert-disabled)
   (ripgrep-edit--invoke regexp path extra-args #'ripgrep-edit--get-git-path))
+
+(defun ripgrep-edit--warn-if-auto-revert-disabled ()
+  "Warn if automatic file revert is not enabled."
+  (unless (bound-and-true-p global-auto-revert-mode)
+    (display-warning 'ripgrep-edit
+		     "Automatic file revert is not enabled. Consider enabling it with `M-x global-auto-revert-mode`."
+		    :warning)))
 
 (defun gptel-rewrite-ripgrep-edit ()
   (when (string-match-p "\\.ripgrep-edit" (buffer-name))
