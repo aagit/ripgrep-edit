@@ -121,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             writeln!(file, "{after_colon}")?;
         } else {
-            let line = dedup_slashes(&line);
+            let line = dedup_slashes(line);
             // Check if this line matches a file in file_ranges and is not the first file
             let is_file_match = file_ranges.contains_key(&line);
             if is_file_match {
@@ -256,7 +256,7 @@ fn parse_file_ranges<'a>(
         // Check if line is a file path
         if !line.chars().next().is_some_and(|c| c.is_ascii_digit()) {
             assert!(prev_line_empty);
-            let line = dedup_slashes(&line);
+            let line = dedup_slashes(line);
             if Path::new(&line).exists() {
                 if let Some(ref current) = current_file {
                     if current != &line {
@@ -276,15 +276,15 @@ fn parse_file_ranges<'a>(
 
         // Check if line matches the format: linenumber:code
         let mut parts = line.splitn(2, ':');
-        if let Some(line_num_str) = parts.next() {
-            if let Ok(line_num) = line_num_str.parse::<usize>() {
-                assert!(current_file.is_some());
-                // Same file, extend range
-                if let Some(ref mut range) = current_range {
-                    range.1 = line_num;
-                } else {
-                    current_range = Some((line_num, line_num));
-                }
+        if let Some(line_num_str) = parts.next()
+            && let Ok(line_num) = line_num_str.parse::<usize>()
+        {
+            assert!(current_file.is_some());
+            // Same file, extend range
+            if let Some(ref mut range) = current_range {
+                range.1 = line_num;
+            } else {
+                current_range = Some((line_num, line_num));
             }
         }
         prev_line_empty = false;
@@ -300,11 +300,13 @@ fn parse_file_ranges<'a>(
     file_ranges
 }
 
+type FileChangesResult = Result<HashMap<String, Vec<Vec<String>>>, Box<dyn std::error::Error>>;
+
 fn parse_modified_file(
     reader: BufReader<File>,
     file_ranges: &HashMap<String, Vec<(usize, usize)>>,
     context_separator: &str,
-) -> Result<HashMap<String, Vec<Vec<String>>>, Box<dyn std::error::Error>> {
+) -> FileChangesResult {
     let mut changes: HashMap<String, Vec<Vec<String>>> = HashMap::new();
     let mut current_file = String::new();
     let mut current_lines: Vec<String> = Vec::new();
