@@ -96,7 +96,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("No results found.");
         std::process::exit(0);
     }
-    let temp_file = tempfile::NamedTempFile::with_suffix(".ripgrep-edit")?;
+    let temp_file = tempfile::Builder::new()
+        .prefix("ripgrep-edit-")
+        .suffix(".ripgrep-edit")
+        .tempfile()?;
     let temp_path = temp_file.path().to_str().unwrap();
     let mut file = temp_file.as_file();
 
