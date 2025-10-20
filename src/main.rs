@@ -41,7 +41,11 @@ struct Args {
     require_all_files: bool,
 
     /// context_separator character
-    #[clap(long, default_value = "-- DO NOT DELETE THIS SEPARATOR --", allow_hyphen_values = true)]
+    #[clap(
+        long,
+        default_value = "-- DO NOT DELETE THIS SEPARATOR --",
+        allow_hyphen_values = true
+    )]
     context_separator: String,
 }
 
@@ -124,9 +128,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     first_file_written = true;
                 }
             }
-	    if is_file_match || &line == context_separator {
-		writeln!(file, "{line}")?;
-	    }
+            if is_file_match || &line == context_separator {
+                writeln!(file, "{line}")?;
+            }
         }
     }
 
