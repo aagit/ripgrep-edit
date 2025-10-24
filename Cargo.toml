@@ -9,5 +9,5 @@ license = "GPL-3.0-or-later OR AGPL-3.0-or-later"
 keywords = ["ripgrep", "gptel", "gptel-rewrite", "llm"]
 
 [dependencies]
-tempfile = "3.23.0"
-clap = { version = "4.5.48", features = ["derive"] }
+tempfile = "3.23"
+clap = { version = "4.5", features = ["derive"] }
