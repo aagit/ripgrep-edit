@@ -397,3 +397,7 @@ mod tests {
         assert!(error_str.contains("File was not modified"));
     }
 }
+
+// Local Variables:
+// rust-format-on-save: t
+// End:
