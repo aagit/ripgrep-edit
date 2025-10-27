@@ -17,7 +17,7 @@
   :type 'string
   :group 'ripgrep-edit)
 
-(define-key global-map (kbd "C-x C-g") #'ripgrep-edit-git)
+(define-key global-map (kbd "C-c C-x g") #'ripgrep-edit-git)
 
 (defun ripgrep-edit--check-server ()
   "Check if the Emacs server is running and signal an error if not."
