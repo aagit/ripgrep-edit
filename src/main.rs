@@ -47,6 +47,18 @@ struct Args {
         allow_hyphen_values = true
     )]
     context_separator: String,
+
+    /// Smart case search
+    #[clap(short = 'S', long = "smart-case")]
+    smart_case: bool,
+
+    /// Ignore case
+    #[clap(short = 'i', long = "ignore-case")]
+    ignore_case: bool,
+
+    /// Word regexp
+    #[clap(short = 'w', long = "word-regexp")]
+    word_regexp: bool,
 }
 
 fn dedup_slashes(line: &str) -> String {
@@ -77,6 +89,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if args.before_context > 0 {
         rg_cmd.arg(format!("-B{}", args.before_context));
+    }
+    if args.smart_case {
+        rg_cmd.arg("-S");
+    }
+    if args.ignore_case {
+        rg_cmd.arg("-i");
+    }
+    if args.word_regexp {
+        rg_cmd.arg("-w");
     }
 
     let output = rg_cmd.output();
