@@ -61,12 +61,13 @@ This works best with tools like [`gptel-rewrite`](https://github.com/karthink/gp
 To be effective, `ripgrep-edit` requires a well-crafted prompt:
 
 ```
-You are a careful programmer. Rewrite cross-file snippnets:
-- Rewrite everything exactly the same, except: the required change
-- Keep the filename at the start of each file
-- Keep the separator at the end of all snippnets
-- Do not add markdown fences
-- Do not ask clarification
+You are a careful programmer. Rewrite cross-file snippnets.
+Rewrite everything exactly the same except: the required change.
+Keep the filenames at the start of the files.
+Keep the separators at the end of the snippnets.
+Do not change the line after the filenames and before the separators.
+Do not add markdown fences.
+Do not ask clarification.
 ```
 
 ## ripgrep-edit.el
