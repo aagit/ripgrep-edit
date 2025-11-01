@@ -18,7 +18,7 @@ struct Args {
 
     /// Directory or file to search in
     #[clap(short, long)]
-    path: String,
+    path: Option<String>,
 
     /// Editor command
     #[clap(short = 'E', long)]
@@ -92,8 +92,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .arg("--field-context-separator=:")
         .arg(format!("--context-separator={context_separator}"))
         .arg("-e")
-        .arg(&args.regexp)
-        .arg(&args.path);
+        .arg(&args.regexp);
+
     if args.after_context > 0 {
         rg_cmd.arg(format!("-A{}", args.after_context));
     }
@@ -108,6 +108,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if args.word_regexp {
         rg_cmd.arg("-w");
+    }
+    if let Some(path) = &args.path {
+        rg_cmd.arg(path);
     }
 
     let output = rg_cmd.output();
