@@ -99,8 +99,7 @@
 	    "Rewrite everything exactly the same except: the required change.\n"
 	    "Keep the filenames at the start of the files.\n"
 	    "Keep the separators at the end of the snippnets.\n"
-	    "Do not change the line after the filenames "
-	    "and before the separators.\n"
+	    "Do not change the filenames and the separators.\n"
 	    "Do not add markdown fences.\n"
 	    "Do not ask clarification.")))
 (add-hook 'gptel-rewrite-directives-hook #'gptel-rewrite-ripgrep-edit)
