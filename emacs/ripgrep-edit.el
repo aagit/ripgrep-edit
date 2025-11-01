@@ -32,14 +32,17 @@
 
 (defun ripgrep-edit--run-command (regexp path extra-args)
   "Run ripgrep-edit with REGEXP, PATH, and EXTRA-ARGS."
-  (apply #'start-process "ripgrep-edit"
-	 (get-buffer-create "*ripgrep-edit*")
-	 ripgrep-edit-executable
-	 "-e" regexp
-	 "-p" path
-	 "-E" "emacsclient"
-	 (when extra-args
-	   (split-string extra-args))))
+  (let* ((path-dir (directory-file-name path))
+	 (default-directory (file-name-directory path-dir))
+	 (dir-name (file-name-nondirectory path-dir)))
+    (apply #'start-process "ripgrep-edit"
+	   (get-buffer-create "*ripgrep-edit*")
+	   ripgrep-edit-executable
+	   "-e" regexp
+	   "-E" "emacsclient"
+	   "-p" dir-name
+	   (when extra-args
+	     (split-string extra-args)))))
 
 (defun ripgrep-edit--get-path (path buffer-file)
   "Get the search path for ripgrep-edit, using PATH or buffer file location."
