@@ -43,7 +43,7 @@ struct Args {
     /// context_separator character
     #[clap(
         long,
-        default_value = "-- DO NOT DELETE THIS SEPARATOR --",
+        default_value = "-- DO NOT DELETE THIS SEPARATOR",
         allow_hyphen_values = true
     )]
     context_separator: String,
@@ -51,10 +51,6 @@ struct Args {
     /// filename_prefix character
     #[clap(long, default_value = "-- /", allow_hyphen_values = true)]
     filename_prefix: String,
-
-    /// filename_suffix character
-    #[clap(long, default_value = " --", allow_hyphen_values = true)]
-    filename_suffix: String,
 
     /// Smart case search
     #[clap(short = 'S', long = "smart-case")]
@@ -81,7 +77,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run ripgrep with context lines
     let context_separator = &args.context_separator;
     let filename_prefix = &args.filename_prefix;
-    let filename_suffix = &args.filename_suffix;
 
     let mut rg_cmd = Command::new("rg");
     rg_cmd
@@ -164,7 +159,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     first_file_written = true;
                 }
-                writeln!(file, "{filename_prefix}{line}{filename_suffix}")?;
+                writeln!(file, "{filename_prefix}{line}")?;
             } else if &line == context_separator {
                 writeln!(file, "{line}")?;
             }
@@ -206,13 +201,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(temp_path)?;
     let reader = BufReader::new(file);
 
-    let changes = parse_modified_file(
-        reader,
-        &file_ranges,
-        context_separator,
-        filename_prefix,
-        filename_suffix,
-    )?;
+    let changes = parse_modified_file(reader, &file_ranges, context_separator, filename_prefix)?;
     apply_changes_to_file_ranges(&changes, &mut file_ranges, args.require_all_files)?;
 
     Ok(())
@@ -347,7 +336,6 @@ fn parse_modified_file(
     file_ranges: &HashMap<String, Vec<(usize, usize)>>,
     context_separator: &str,
     filename_prefix: &str,
-    filename_suffix: &str,
 ) -> FileChangesResult {
     let mut changes: HashMap<String, Vec<Vec<String>>> = HashMap::new();
     let mut current_file = String::new();
@@ -369,10 +357,7 @@ fn parse_modified_file(
             pprev_line_separator = true;
             continue;
         }
-        let normalized_line = line
-            .strip_prefix(filename_prefix)
-            .and_then(|s| s.strip_suffix(filename_suffix))
-            .map(dedup_slashes);
+        let normalized_line = line.strip_prefix(filename_prefix).map(dedup_slashes);
         if let Some(normalized_line) = normalized_line
             && file_ranges.contains_key(&normalized_line)
         {
@@ -426,8 +411,6 @@ mod tests {
                 "--context=1",
                 "--filename-prefix",
                 "-- TEST: ",
-                "--filename-suffix",
-                " -- TEST",
             ])
             .output()
             .expect("Failed to execute ripgrep-edit");
