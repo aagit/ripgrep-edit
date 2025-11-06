@@ -63,6 +63,14 @@ struct Args {
     /// Word regexp
     #[clap(short = 'w', long = "word-regexp")]
     word_regexp: bool,
+
+    /// Multiline search
+    #[clap(short = 'U', long = "multiline")]
+    multiline: bool,
+
+    /// Multiline dotall search
+    #[clap(long = "multiline-dotall")]
+    multiline_dotall: bool,
 }
 
 fn dedup_slashes(line: &str) -> String {
@@ -103,6 +111,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if args.word_regexp {
         rg_cmd.arg("-w");
+    }
+    if args.multiline {
+        rg_cmd.arg("-U");
+    }
+    if args.multiline_dotall {
+        rg_cmd.arg("--multiline-dotall");
     }
     if let Some(path) = &args.path {
         rg_cmd.arg(path);
