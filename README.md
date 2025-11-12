@@ -35,9 +35,10 @@ cargo build --release
 ## Examples
 
 ```bash
-./target/release/ripgrep-edit [OPTIONS] --regexp <REGEXP> --path <PATH> --editor <EDITOR>
-./target/release/ripgrep-edit -e "function\s*\(" -p src/ -E vim
-./target/release/ripgrep-edit -e "function\s*\(" -p src/ -E "emacsclient" -C 8
+ripgrep-edit [OPTIONS] --regexp <REGEXP> --path <PATH> --editor <EDITOR>
+ripgrep-edit -e "function\s*\(" -p src/ -E vim
+ripgrep-edit -e "function\s*\(" -p src/ -E "emacsclient" -C 8
+ripgrep-edit -E vim -U -e '(?s)^<<<<<<<+ .*?^>>>>>>>+ ' # resolve git conflicts
 ```
 
 ## Why It Was Built
