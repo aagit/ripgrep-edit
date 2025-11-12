@@ -30,7 +30,13 @@ cargo build --release
 - `-A, --after-context <N>`: Lines of context to show after each match  
 - `-B, --before-context <N>`: Lines of context to show before each match  
 - `--require-all-files`: Require all files in ripgrep output to be present in the edited file  
-- `--context-separator <SEPARATOR>`: Separator string between snippnets
+- `--context-separator <SEPARATOR>`: Separator string between snippets  
+- `--filename-prefix <PREFIX>`: Prefix for filename lines (default: "-- /")  
+- `-S, --smart-case`: Enable smart case search  
+- `-i, --ignore-case`: Ignore case distinctions  
+- `-w, --word-regexp`: Force pattern to match only whole words  
+- `-U, --multiline`: Enable multiline matching  
+- `--multiline-dotall`: Enable dotall mode for multiline matching
 
 ## Examples
 
