@@ -18,6 +18,8 @@ ripgrep-edit enables *razor coding* by allowing LLM workflows to operate with ra
 ## Build
 
 ```bash
+git clone https://gitlab.com/aarcange/ripgrep-edit.git
+cd ripgrep-edit
 cargo build --release
 ```
 
