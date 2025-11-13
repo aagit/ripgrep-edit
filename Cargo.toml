@@ -1,6 +1,6 @@
 [package]
 name = "ripgrep-edit"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2024"
 description = "Edit ripgrep search results across multiple files"
 readme = "README.md"
