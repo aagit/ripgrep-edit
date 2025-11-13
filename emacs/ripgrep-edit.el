@@ -18,15 +18,16 @@
   :group 'ripgrep-edit)
 
 (define-key global-map (kbd "C-c C-x g") #'ripgrep-edit-git)
+(define-key global-map (kbd "C-c C-x C-g") #'ripgrep-edit-git-conflicts)
 
 (defun ripgrep-edit--check-server ()
   "Check if the Emacs server is running and signal an error if not."
   (unless (server-running-p)
     (user-error "Emacs server is not running. Please start it with 'M-x server-start'")))
 
-(defun ripgrep-edit--collect-extra-args ()
+(defun ripgrep-edit--collect-extra-args (extra-args)
   "Collect extra arguments for ripgrep-edit command."
-  (let ((extra-args (read-string "Extra args: ")))
+  (let ((extra-args (read-string "Extra args: " extra-args)))
     (unless (string-empty-p extra-args)
       extra-args)))
 
@@ -74,7 +75,7 @@
 	  (buffer-file (buffer-file-name)))
       (let ((search-path (funcall get-path-fn path buffer-file)))
 	(let ((search-path (expand-file-name (read-directory-name "Path: " search-path)))
-	      (extra-args (ripgrep-edit--collect-extra-args)))
+	      (extra-args (ripgrep-edit--collect-extra-args extra-args)))
 	  (ripgrep-edit--run-command search-regexp search-path extra-args))))))
 
 (defun ripgrep-edit (&optional regexp path extra-args)
@@ -88,6 +89,12 @@
   (interactive)
   (ripgrep-edit--warn-if-auto-revert-disabled)
   (ripgrep-edit--invoke regexp path extra-args #'ripgrep-edit--get-git-path))
+
+(defun ripgrep-edit-git-conflicts (&optional regexp path extra-args)
+  "Invoke ripgrep-edit-git with PATH and EXTRA-ARGS."
+  (interactive)
+  (ripgrep-edit--warn-if-auto-revert-disabled)
+  (ripgrep-edit--invoke "(?s)^<<<<<<<+ .*?^>>>>>>>+ " path "-U" #'ripgrep-edit--get-git-path))
 
 (defun ripgrep-edit--warn-if-auto-revert-disabled ()
   "Warn if automatic file revert is not enabled."
