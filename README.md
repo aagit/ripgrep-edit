@@ -43,10 +43,10 @@ cargo build --release
 ## Examples
 
 ```bash
-ripgrep-edit [OPTIONS] --regexp <REGEXP> --path <PATH> --editor <EDITOR>
-ripgrep-edit -e "function\s*\(" -p src/ -E vim
-ripgrep-edit -e "function\s*\(" -p src/ -E "emacsclient" -C 8
-ripgrep-edit -E vim -U -e '(?s)^<<<<<<<+ .*?^>>>>>>>+ ' # resolve git conflicts
+rg-edit [OPTIONS] --regexp <REGEXP> --path <PATH> --editor <EDITOR>
+rg-edit -e "function\s*\(" -p src/ -E vim
+rg-edit -e "function\s*\(" -p src/ -E "emacsclient" -C 8
+rg-edit -E vim -U -e '(?s)^<<<<<<<+ .*?^>>>>>>>+ ' # resolve git conflicts
 ```
 
 ## Why It Was Built
@@ -79,13 +79,13 @@ Do not add markdown fences.
 Do not ask clarification.
 ```
 
-## ripgrep-edit.el
+## rg-edit.el
 
-- Provides `ripgrep-edit` and `ripgrep-edit-git` functions
+- Provides `rg-edit`, `rg-edit-git`, `rg-edit-git-conflicts` functions
 
 ```elisp
-(load-file "~/.../ripgrep-edit/emacs/ripgrep-edit.el")
-(setq-default ripgrep-edit-executable "~/.../ripgrep-edit/target/release/ripgrep-edit")
+(load-file "~/.../ripgrep-edit/emacs/rg-edit.el")
+(setq-default rg-edit-executable "~/.../ripgrep-edit/target/release/rg-edit")
 ```
 
 ## Why Not wgrep?

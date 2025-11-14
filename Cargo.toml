@@ -6,8 +6,12 @@ description = "Edit ripgrep search results across multiple files"
 readme = "README.md"
 repository = "https://gitlab.com/aarcange/ripgrep-edit"
 license = "GPL-3.0-or-later OR AGPL-3.0-or-later"
-keywords = ["ripgrep", "gptel", "gptel-rewrite", "llm"]
+keywords = ["ripgrep", "rg", "gptel", "gptel-rewrite", "llm"]
 
 [dependencies]
 tempfile = "3.23"
 clap = { version = "4.5", features = ["derive"] }
+
+[[bin]]
+name = "rg-edit"
+path = "src/main.rs"

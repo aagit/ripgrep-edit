@@ -36,7 +36,7 @@ struct Args {
     #[clap(short = 'B', long, default_value_t = 0)]
     before_context: u32,
 
-    /// Require all files in the ripgrep output to be present in the modified file
+    /// Require all files in the rg output to be present in the modified file
     #[clap(long, default_value_t = false)]
     require_all_files: bool,
 
@@ -82,7 +82,7 @@ fn dedup_slashes(line: &str) -> String {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    // Run ripgrep with context lines
+    // Run rg with context lines
     let context_separator = &args.context_separator;
     let filename_prefix = &args.filename_prefix;
 
@@ -127,9 +127,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(_) => {}
         Err(e) => {
             if e.kind() == std::io::ErrorKind::NotFound {
-                eprintln!("Error: ripgrep is not installed.");
+                eprintln!("Error: rg is not installed.");
             } else {
-                eprintln!("Failed to execute ripgrep: {e}");
+                eprintln!("Failed to execute rg: {e}");
             }
             std::process::exit(1);
         }
@@ -140,8 +140,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(0);
     }
     let temp_file = tempfile::Builder::new()
-        .prefix("ripgrep-edit-")
-        .suffix(".ripgrep-edit")
+        .prefix("rg-edit-")
+        .suffix(".rg-edit")
         .tempfile()?;
     let temp_path = temp_file.path().to_str().unwrap();
     let mut file = temp_file.as_file();
@@ -411,7 +411,7 @@ fn parse_modified_file(
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_ripgrep_edit_search() {
+    fn test_rg_edit_search() {
         let output = std::process::Command::new("cargo")
             .args(&[
                 "run",
@@ -427,12 +427,12 @@ mod tests {
                 "-- TEST: ",
             ])
             .output()
-            .expect("Failed to execute ripgrep-edit");
+            .expect("Failed to execute rg-edit");
 
         let output_str = String::from_utf8_lossy(&output.stdout);
         let error_str = String::from_utf8_lossy(&output.stderr);
 
-        // Ensure ripgrep-edit ran successfully
+        // Ensure rg-edit ran successfully
         assert!(
             output.status.success(),
             "Command failed with: {}",
