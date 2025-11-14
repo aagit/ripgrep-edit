@@ -89,6 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut rg_cmd = Command::new("rg");
     rg_cmd
         .arg("-n")
+        .arg("-H")
         .arg(format!("-C{}", args.context))
         .arg("--heading")
         .arg("--color=never")
