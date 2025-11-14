@@ -16,10 +16,6 @@ struct Args {
     #[clap(short = 'e', long, allow_hyphen_values = true)]
     regexp: String,
 
-    /// Directory or file to search in
-    #[clap(short, long)]
-    path: Option<String>,
-
     /// Editor command
     #[clap(short = 'E', long)]
     editor: String,
@@ -71,6 +67,10 @@ struct Args {
     /// Multiline dotall search
     #[clap(long = "multiline-dotall")]
     multiline_dotall: bool,
+
+    /// Paths to search in
+    #[clap(num_args(0..))]
+    paths: Vec<String>,
 }
 
 fn dedup_slashes(line: &str) -> String {
@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.multiline_dotall {
         rg_cmd.arg("--multiline-dotall");
     }
-    if let Some(path) = &args.path {
+    for path in &args.paths {
         rg_cmd.arg(path);
     }
 
@@ -418,7 +418,6 @@ mod tests {
                 "--",
                 "--regexp",
                 "context_separator",
-                "--path",
                 "src",
                 "--editor",
                 "cat",

@@ -41,7 +41,7 @@
 	   rg-edit-executable
 	   "-e" regexp
 	   "-E" "emacsclient"
-	   "-p" dir-name
+	   dir-name
 	   (when extra-args
 	     (split-string extra-args)))))
 
