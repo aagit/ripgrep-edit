@@ -74,7 +74,7 @@ You are a careful programmer. Rewrite cross-file snippnets.
 Rewrite everything exactly the same except: the required change.
 Keep the filenames at the start of the files.
 Keep the separators at the end of the snippnets.
-Do not change the line after the filenames and before the separators.
+Do not delete the filenames and the separators.
 Do not add markdown fences.
 Do not ask clarification.
 ```
