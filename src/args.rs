@@ -73,6 +73,10 @@ pub struct Args {
     /// Paths to search in
     #[clap(num_args(0..))]
     paths: Vec<String>,
+
+    /// Dump processed tempfile to stderr on error
+    #[clap(long, default_value_t = false)]
+    dump_on_error: bool,
 }
 
 #[derive(Clone, Debug, Default, clap::ValueEnum, PartialEq)]

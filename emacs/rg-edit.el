@@ -31,16 +31,25 @@
     (unless (string-empty-p extra-args)
       extra-args)))
 
+(defun rg-edit--cleanup-buffer (buffer)
+  "Clean up the *rg-edit* buffer before running rg-edit."
+  (with-current-buffer buffer
+    (erase-buffer)
+    (goto-char (point-min))))
+
 (defun rg-edit--run-command (regexp path extra-args)
   "Run rg-edit with REGEXP, PATH, and EXTRA-ARGS."
   (let* ((path-dir (directory-file-name path))
 	 (default-directory (file-name-directory path-dir))
-	 (dir-name (file-name-nondirectory path-dir)))
+	 (dir-name (file-name-nondirectory path-dir))
+	 (process-buffer (get-buffer-create "*rg-edit*")))
+    (rg-edit--cleanup-buffer process-buffer)
     (apply #'start-process "rg-edit"
-	   (get-buffer-create "*rg-edit*")
+	   process-buffer
 	   rg-edit-executable
 	   "-e" regexp
 	   "-E" "emacsclient"
+	   "--dump-on-error"
 	   dir-name
 	   (when extra-args
 	     (split-string extra-args)))))

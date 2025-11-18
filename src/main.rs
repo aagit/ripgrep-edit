@@ -343,8 +343,20 @@ fn main() -> Result<()> {
     let file = File::open(temp_path)?;
     let reader = BufReader::new(file);
 
-    let changes = parse_modified_file(reader, &file_ranges, context_separator, filename_prefix)?;
-    apply_changes_to_file_ranges(&changes, &file_ranges, args.require_all_files)?;
+    let mut processed_lines: Vec<String> = Vec::new();
+    if let Err(e) = parse_modified_file(
+        reader,
+        &file_ranges,
+        context_separator,
+        filename_prefix,
+        &args,
+        &mut processed_lines,
+    ) {
+        if args.dump_on_error {
+            print_processed_lines(&processed_lines);
+        }
+        return Err(e);
+    }
 
     Ok(())
 }
@@ -352,7 +364,7 @@ fn main() -> Result<()> {
 fn apply_changes_to_file_ranges(
     changes: &FileChanges,
     file_ranges: &FileRanges,
-    require_all_files: bool,
+    args: &Args,
 ) -> Result<()> {
     let file_ranges_keys: HashSet<&String> = file_ranges.filenames.iter().collect();
     let changes_keys: HashSet<&String> = changes.keys().collect();
@@ -360,7 +372,7 @@ fn apply_changes_to_file_ranges(
         changes_keys.is_subset(&file_ranges_keys),
         "changes contain files not found in file_ranges"
     );
-    if require_all_files {
+    if args.require_all_files {
         let missing_files: Vec<&String> = file_ranges_keys
             .difference(&changes_keys)
             .copied()
@@ -372,16 +384,8 @@ fn apply_changes_to_file_ranges(
 
     // When require_all_files is false, we only check that all snippets
     // in changes are ranges present in file_ranges
-    for (file_path, snippets) in changes.iter() {
-        let ranges = file_ranges.hash.get(file_path).unwrap();
-        if ranges.len() != snippets.len() {
-            return Err(anyhow::anyhow!(
-                "Mismatch in snippet count for file {}: expected {}, got {}",
-                file_path,
-                ranges.len(),
-                snippets.len()
-            ));
-        }
+    for filename in changes_keys.iter() {
+        assert!(validate_changes_vs_ranges(changes, file_ranges, filename).is_ok());
     }
 
     let mut changed_files = false;
@@ -431,7 +435,9 @@ fn parse_modified_file(
     file_ranges: &FileRanges,
     context_separator: &str,
     filename_prefix: &str,
-) -> Result<FileChanges> {
+    args: &Args,
+    processed_lines: &mut Vec<String>,
+) -> Result<()> {
     let mut changes: FileChanges = HashMap::new();
     let mut current_file = String::new();
     let mut current_lines: Vec<String> = Vec::new();
@@ -441,6 +447,7 @@ fn parse_modified_file(
 
     for line in reader.lines() {
         let line = line?;
+        processed_lines.push(line.clone());
         if line == context_separator {
             if current_file.is_empty() {
                 return Err(anyhow::anyhow!(
@@ -484,6 +491,7 @@ fn parse_modified_file(
                 {
                     return Err(anyhow::anyhow!("Duplicate file found: {}", current_file));
                 }
+                validate_changes_vs_ranges(&changes, file_ranges, &current_file)?;
                 current_snippet.clear();
             } else {
                 assert!(!pprev_line_separator);
@@ -521,9 +529,34 @@ fn parse_modified_file(
         {
             return Err(anyhow::anyhow!("Duplicate file found: {}", current_file));
         }
+        validate_changes_vs_ranges(&changes, file_ranges, &current_file)?;
     }
 
-    Ok(changes)
+    apply_changes_to_file_ranges(&changes, file_ranges, args)
+}
+
+fn validate_changes_vs_ranges(
+    changes: &FileChanges,
+    file_ranges: &FileRanges,
+    current_file: &str,
+) -> Result<()> {
+    let changes_len = changes.get(current_file).unwrap().len();
+    let ranges_len = file_ranges.hash.get(current_file).unwrap().len();
+    if changes_len != ranges_len {
+        return Err(anyhow::anyhow!(
+            "Mismatch between changes and file ranges in file {}: expected {} snippets, found {}",
+            current_file,
+            ranges_len,
+            changes_len
+        ));
+    }
+    Ok(())
+}
+
+fn print_processed_lines(lines: &[String]) {
+    for line in lines {
+        eprintln!("{}", line);
+    }
 }
 
 #[cfg(test)]
