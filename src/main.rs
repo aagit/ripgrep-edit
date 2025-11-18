@@ -271,9 +271,10 @@ fn apply_changes_to_file_ranges(
 ) -> Result<()> {
     let file_ranges_keys: HashSet<&String> = file_ranges.filenames.iter().collect();
     let changes_keys: HashSet<&String> = changes.keys().collect();
-    if !changes_keys.is_subset(&file_ranges_keys) {
-        return Err(anyhow::anyhow!("Changes contain files not found in ranges"));
-    }
+    assert!(
+        changes_keys.is_subset(&file_ranges_keys),
+        "changes contain files not found in file_ranges"
+    );
     if require_all_files {
         let missing_files: Vec<&String> = file_ranges_keys
             .difference(&changes_keys)
