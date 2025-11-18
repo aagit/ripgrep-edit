@@ -362,7 +362,7 @@ fn parse_modified_file(
             current_lines.clear();
             prev_line_empty = false;
         } else {
-            prev_line_empty = line.is_empty();
+            prev_line_empty = line.trim().is_empty();
             current_lines.push(line);
         }
         if !prev_line_empty {
