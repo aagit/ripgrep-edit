@@ -39,7 +39,7 @@ pub struct Args {
     context_separator: String,
 
     /// filename_prefix character
-    #[clap(long, default_value = "-- /", allow_hyphen_values = true)]
+    #[clap(long, default_value = "-- ", allow_hyphen_values = true)]
     filename_prefix: String,
 
     /// Smart Case search
