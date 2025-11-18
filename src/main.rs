@@ -298,11 +298,16 @@ fn apply_changes_to_file_ranges(
         }
     }
 
+    let mut changed_files = false;
+
     for (file_path, file_changes) in changes {
         if let Some(ranges) = file_ranges.hash.get(file_path) {
             // Read the original file
             let content = std::fs::read_to_string(file_path)?;
             let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+
+            // Check if any changes are actually different from original
+            let mut has_changes = false;
 
             // Process ranges in reverse order to maintain correct indices
             for (i, range) in ranges.iter().enumerate().rev() {
@@ -311,14 +316,25 @@ fn apply_changes_to_file_ranges(
 
                 // Replace the lines in the file
                 if let Some(snippet) = file_changes.get(i) {
-                    // Replace the range with new content
-                    lines.splice(start..end, snippet.clone().into_iter());
+                    let original_snippet: Vec<String> = lines[start..end].to_vec();
+                    if *snippet != original_snippet {
+                        // Replace the range with new content
+                        lines.splice(start..end, snippet.clone().into_iter());
+                        has_changes = true;
+                        changed_files = true;
+                    }
                 }
             }
 
-            // Write back the modified content
-            std::fs::write(file_path, lines.join("\n") + "\n")?;
+            if has_changes {
+                // Write back the modified content
+                std::fs::write(file_path, lines.join("\n") + "\n")?;
+            }
         }
+    }
+
+    if !changed_files {
+        eprintln!("No changes detected in any file.");
     }
 
     Ok(())
