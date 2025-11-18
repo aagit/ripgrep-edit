@@ -134,10 +134,8 @@ fn main() -> Result<()> {
         .arg(format!("{} {}", args.editor, temp_path));
 
     let editor_status = editor_cmd.status()?;
-
     if !editor_status.success() {
-        eprintln!("Editor failed to run");
-        return Ok(());
+        anyhow::bail!("Editor failed with status: {}", editor_status);
     }
 
     // Get modification time after editor
