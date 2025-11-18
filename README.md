@@ -26,26 +26,28 @@ cargo build --release
 ## Options
 
 - `-e, --regexp <REGEXP>`: Regex pattern to search for  
-- `-p, --path <PATH>`: Directory or file to search in  
 - `-E, --editor <EDITOR>`: Editor command (e.g., `vim`, `emacs`)  
-- `-C, --context <N>`: Number of context lines (default: 5)  
+- `-C, --context <N>`: Number of context lines  
 - `-A, --after-context <N>`: Lines of context to show after each match  
 - `-B, --before-context <N>`: Lines of context to show before each match  
 - `--require-all-files`: Require all files in ripgrep output to be present in the edited file  
 - `--context-separator <SEPARATOR>`: Separator string between snippets  
-- `--filename-prefix <PREFIX>`: Prefix for filename lines (default: "-- /")  
+- `--filename-prefix <PREFIX>`: Prefix for filename lines  
 - `-S, --smart-case`: Enable smart case search  
 - `-i, --ignore-case`: Ignore case distinctions  
 - `-w, --word-regexp`: Force pattern to match only whole words  
 - `-U, --multiline`: Enable multiline matching  
-- `--multiline-dotall`: Enable dotall mode for multiline matching
+- `--multiline-dotall`: Enable dotall mode for multiline matching  
+- `--sort <SORT>`: Sort results by path, modified, accessed, or created time  
+- `--sortr <SORT>`: Sort results in reverse order by path, modified, accessed, or created time  
+- `--dump-on-error`: Dump processed tempfile to stderr on error
 
 ## Examples
 
 ```bash
-rg-edit [OPTIONS] --regexp <REGEXP> --path <PATH> --editor <EDITOR>
-rg-edit -e "function\s*\(" -p src/ -E vim
-rg-edit -e "function\s*\(" -p src/ -E "emacsclient" -C 8
+rg-edit [OPTIONS] --regexp <REGEXP> --editor <EDITOR> [PATHS...]
+rg-edit -e "function\s*\(" -E vim src/
+rg-edit -e "function\s*\(" -E "emacsclient" -C 8 src/
 rg-edit -E vim -U -e '(?s)^<<<<<<<+ .*?^>>>>>>>+ ' # resolve git conflicts
 ```
 
@@ -59,9 +61,9 @@ Large codebases challenge LLMs due to context limits. Traditional vibe coding to
 - 🧠 **Enabling precise edits** via LLMs or editors
 - 🔄 **Reapplying changes to original files**
 
-`ripgrep-edit` lets the programmer define the exact context needed, presenting it in a structured, linear format optimized for the LLM’s key-value input. The resulting gain in efficiency enables real-time visibility into what the LLM is generating — allowing to interrupt, refine input, adjust directives, and eliminate unnecessary context, computation, and cost.
+`ripgrep-edit` lets the programmer define the exact context needed, presenting it in a structured, linear format optimized for the LLM's key-value input. The resulting gain in efficiency enables real-time visibility into what the LLM is generating — allowing to interrupt, refine input, adjust directives, and eliminate unnecessary context, computation, and cost.
 
-The goal is to optimize the LLM’s most demanding task — writing code — by minimizing perplexity and maximizing efficiency.
+The goal is to optimize the LLM's most demanding task — writing code — by minimizing perplexity and maximizing efficiency.
 
 ## How to use
 
@@ -90,7 +92,7 @@ Do not ask clarification.
 
 ## Why Not wgrep?
 
-- Emacs’ [`wgrep`](https://github.com/mhayashi1120/Emacs-wgrep) offers similar functionality but relies on interactive edits, such as `C-c C-d` to delete a line, which are incompatible with the full rewrites required in LLM-driven workflows.
+- Emacs' [`wgrep`](https://github.com/mhayashi1120/Emacs-wgrep) offers similar functionality but relies on interactive edits, such as `C-c C-d` to delete a line, which are incompatible with the full rewrites required in LLM-driven workflows.
 
 - Unlike wgrep, `ripgrep-edit` is editor-agnostic and LLM-agnostic: any editor can be used, making it ideal for diverse environments, or simply to avoid opening multiple files with vim.
 
