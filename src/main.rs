@@ -38,14 +38,104 @@ impl FileRange {
 struct FileRanges {
     filenames: Vec<String>,
     hash: HashMap<String, Vec<FileRange>>,
+    context_separator: String,
+    filename_prefix: String,
 }
 
 impl FileRanges {
-    fn new() -> Self {
-        Self {
+    fn new(rg_output: &str, context_separator: &str, filename_prefix: &str) -> Result<Self> {
+        // Parse the output to extract file paths before writing to temp file
+        let lines = rg_output.lines().peekable();
+
+        let mut file_ranges: FileRanges = FileRanges {
             filenames: Vec::new(),
             hash: HashMap::new(),
+            context_separator: context_separator.to_string(),
+            filename_prefix: filename_prefix.to_string(),
+        };
+        let mut current_file: Option<String> = None;
+        let mut current_range: Option<FileRange> = None;
+        let mut prev_line_empty = true;
+
+        for line in lines {
+            if line.is_empty() {
+                prev_line_empty = true;
+                continue;
+            }
+
+            // Check if line is a file path
+            if prev_line_empty {
+                let line = dedup_slashes(line);
+
+                if !Path::new(&line).exists() {
+                    anyhow::bail!("File does not exist: {}", line);
+                }
+
+                if let Some(ref current) = current_file {
+                    if current != &line {
+                        if let Some(range) = current_range {
+                            file_ranges.add(current, range);
+                        }
+                        current_file = Some(line.to_string());
+                    }
+                } else {
+                    current_file = Some(line.to_string());
+                }
+                current_range = None;
+                prev_line_empty = false;
+                continue;
+            }
+
+            if current_file.is_none() {
+                anyhow::bail!("No current file set when processing line: {}", line);
+            }
+
+            if line == context_separator {
+                let current = current_file.as_ref().unwrap();
+                if let Some(range) = current_range {
+                    file_ranges.add(current, range);
+                }
+                current_range = None;
+                prev_line_empty = false;
+                continue;
+            }
+
+            // Check if line matches the format: linenumber:code
+            let mut parts = line.splitn(2, RG_SEPARATOR);
+            if let Some(line_num_str) = parts.next()
+                && let Ok(line_num) = line_num_str.parse::<usize>()
+            {
+                let line = parts.next().unwrap().to_string();
+                if line == context_separator {
+                    anyhow::bail!("context_separator found in file: {}", current_file.unwrap());
+                }
+                // Same file, extend range
+                if let Some(ref mut range) = current_range {
+                    range.end = line_num;
+                    range.lines.push(line);
+                } else {
+                    current_range = Some(FileRange::new(line_num, line_num, vec![line]));
+                }
+            } else {
+                anyhow::bail!("Failed to parse line number from line: {}", line);
+            }
+            prev_line_empty = false;
         }
+
+        if let Some(ref current) = current_file {
+            if prev_line_empty {
+                anyhow::bail!(
+                    "Unexpected empty line after file processing for file: {}",
+                    current
+                );
+            }
+            if let Some(range) = current_range {
+                file_ranges.add(current, range);
+            }
+        }
+
+        file_ranges.validate()?;
+        Ok(file_ranges)
     }
 
     fn contains_key(&self, key: &str) -> bool {
@@ -107,20 +197,15 @@ impl FileRanges {
         Ok(())
     }
 
-    fn write(
-        &self,
-        file: &mut std::fs::File,
-        context_separator: &str,
-        filename_prefix: &str,
-    ) -> Result<()> {
+    fn write(&self, file: &mut std::fs::File) -> Result<()> {
         for (i, (filename, ranges)) in self.iter().enumerate() {
             if i > 0 {
                 writeln!(file)?;
             }
-            writeln!(file, "{}{}", filename_prefix, filename)?;
+            writeln!(file, "{}{}", self.filename_prefix, filename)?;
             for range in ranges {
                 writeln!(file, "{}", range.lines.join("\n"))?;
-                writeln!(file, "{context_separator}")?;
+                writeln!(file, "{}", self.context_separator)?;
             }
         }
         file.flush()?;
@@ -227,8 +312,8 @@ fn main() -> Result<()> {
     let temp_path = temp_file.path().to_str().unwrap().to_string();
     let file = temp_file.as_file_mut();
 
-    let file_ranges = parse_rg_output(&rg_output, context_separator)?;
-    file_ranges.write(file, context_separator, filename_prefix)?;
+    let file_ranges = FileRanges::new(&rg_output, context_separator, filename_prefix)?;
+    file_ranges.write(file)?;
 
     // Set the temp_path modification time to 1 day before the current time
     let before_edit = SystemTime::now() - Duration::from_secs(24 * 60 * 60);
@@ -339,96 +424,6 @@ fn apply_changes_to_file_ranges(
     }
 
     Ok(())
-}
-
-fn parse_rg_output(rg_output: &str, context_separator: &str) -> Result<FileRanges> {
-    // Parse the output to extract file paths before writing to temp file
-    let lines = rg_output.lines().peekable();
-
-    let mut file_ranges: FileRanges = FileRanges::new();
-    let mut current_file: Option<String> = None;
-    let mut current_range: Option<FileRange> = None;
-    let mut prev_line_empty = true;
-
-    for line in lines {
-        if line.is_empty() {
-            prev_line_empty = true;
-            continue;
-        }
-
-        // Check if line is a file path
-        if prev_line_empty {
-            let line = dedup_slashes(line);
-
-            if !Path::new(&line).exists() {
-                anyhow::bail!("File does not exist: {}", line);
-            }
-
-            if let Some(ref current) = current_file {
-                if current != &line {
-                    if let Some(range) = current_range {
-                        file_ranges.add(current, range);
-                    }
-                    current_file = Some(line.to_string());
-                }
-            } else {
-                current_file = Some(line.to_string());
-            }
-            current_range = None;
-            prev_line_empty = false;
-            continue;
-        }
-
-        if current_file.is_none() {
-            anyhow::bail!("No current file set when processing line: {}", line);
-        }
-
-        if line == context_separator {
-            let current = current_file.as_ref().unwrap();
-            if let Some(range) = current_range {
-                file_ranges.add(current, range);
-            }
-            current_range = None;
-            prev_line_empty = false;
-            continue;
-        }
-
-        // Check if line matches the format: linenumber:code
-        let mut parts = line.splitn(2, RG_SEPARATOR);
-        if let Some(line_num_str) = parts.next()
-            && let Ok(line_num) = line_num_str.parse::<usize>()
-        {
-            let line = parts.next().unwrap().to_string();
-            if line == context_separator {
-                anyhow::bail!("context_separator found in file: {}", current_file.unwrap());
-            }
-            // Same file, extend range
-            if let Some(ref mut range) = current_range {
-                range.end = line_num;
-                range.lines.push(line);
-            } else {
-                current_range = Some(FileRange::new(line_num, line_num, vec![line]));
-            }
-        } else {
-            anyhow::bail!("Failed to parse line number from line: {}", line);
-        }
-        prev_line_empty = false;
-    }
-
-    if let Some(ref current) = current_file {
-        if prev_line_empty {
-            anyhow::bail!(
-                "Unexpected empty line after file processing for file: {}",
-                current
-            );
-        }
-        if let Some(range) = current_range {
-            file_ranges.add(current, range);
-        }
-    }
-
-    file_ranges.validate()?;
-    Ok(file_ranges)
 }
 
 fn parse_modified_file(
