@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later OR AGPL-3.0-or-later
 // Copyright (C) 2025  Red Hat, Inc.
 
+use anyhow::Result;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
@@ -16,7 +17,7 @@ fn dedup_slashes(line: &str) -> String {
     chars.iter().collect::<String>()
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     // Run rg with context lines
@@ -163,16 +164,16 @@ fn apply_changes_to_file_ranges(
     changes: &HashMap<String, Vec<Vec<String>>>,
     file_ranges: &mut HashMap<String, Vec<(usize, usize)>>,
     require_all_files: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     if require_all_files {
         let mut file_ranges_keys: Vec<&String> = file_ranges.keys().collect();
         file_ranges_keys.sort();
         let mut changes_keys: Vec<&String> = changes.keys().collect();
         changes_keys.sort();
         if file_ranges_keys != changes_keys {
-            return Err(Box::new(std::io::Error::other(format!(
+            return Err(anyhow::anyhow!(
                 "File ranges keys do not match changes keys. Expected: {changes_keys:?}, Got: {file_ranges_keys:?}"
-            ))));
+            ));
         }
     }
 
@@ -180,7 +181,14 @@ fn apply_changes_to_file_ranges(
     // in changes are ranges present in file_ranges
     for (file_path, blocks) in changes.iter() {
         let ranges = file_ranges.get(file_path).unwrap();
-        assert_eq!(ranges.len(), blocks.len());
+        if ranges.len() != blocks.len() {
+            return Err(anyhow::anyhow!(
+                "Mismatch in block count for file {}: expected {}, got {}",
+                file_path,
+                ranges.len(),
+                blocks.len()
+            ));
+        }
     }
 
     for (file_path, file_changes) in changes {
@@ -281,7 +289,7 @@ fn parse_file_ranges<'a>(
     file_ranges
 }
 
-type FileChangesResult = Result<HashMap<String, Vec<Vec<String>>>, Box<dyn std::error::Error>>;
+type FileChangesResult = Result<HashMap<String, Vec<Vec<String>>>>;
 
 fn parse_modified_file(
     reader: BufReader<File>,
@@ -299,8 +307,17 @@ fn parse_modified_file(
     for line in reader.lines() {
         let line = line?;
         if line == context_separator {
-            assert!(!current_file.is_empty());
-            assert!(!current_lines.is_empty());
+            if current_file.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "Context separator found without active file"
+                ));
+            }
+            if current_lines.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "Empty block found in file: {}",
+                    current_file
+                ));
+            }
 
             current_block.push(current_lines.clone());
             current_lines.clear();
@@ -314,15 +331,32 @@ fn parse_modified_file(
             && file_ranges.contains_key(&normalized_line)
         {
             if !current_file.is_empty() {
-                assert!(prev_line_empty);
-                assert!(pprev_line_separator);
+                if !pprev_line_separator {
+                    return Err(anyhow::anyhow!(
+                        "Missing separator before file: {}",
+                        &normalized_line
+                    ));
+                }
+                if !prev_line_empty {
+                    return Err(anyhow::anyhow!(
+                        "Line not empty before file: {}",
+                        &normalized_line
+                    ));
+                }
                 assert!(!current_lines.is_empty());
 
                 changes.insert(current_file.clone(), current_block.clone());
                 current_block.clear();
             } else {
-                assert!(!prev_line_empty);
                 assert!(!pprev_line_separator);
+                if !current_lines.is_empty() {
+                    eprintln!(
+                        "Warning: trailing lines before first file: {}",
+                        &normalized_line
+                    );
+                } else {
+                    assert!(!prev_line_empty);
+                }
             }
             current_file = normalized_line.to_string();
             current_lines.clear();
@@ -337,9 +371,12 @@ fn parse_modified_file(
     }
 
     if !current_file.is_empty() {
-        assert!(current_lines.is_empty());
-        assert!(!prev_line_empty);
-        assert!(pprev_line_separator);
+        if !current_lines.is_empty() {
+            eprintln!("Warning: Trailing lines after last file: {}", current_file);
+        } else {
+            assert!(!prev_line_empty);
+            assert!(pprev_line_separator);
+        }
         changes.insert(current_file.clone(), current_block.clone());
     }
 
