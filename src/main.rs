@@ -88,8 +88,7 @@ fn main() -> Result<()> {
     // Parse the output to extract file paths before writing to temp file
     let lines = output_str.lines().peekable();
 
-    let mut file_ranges: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
-    file_ranges.extend(parse_file_ranges(lines, context_separator));
+    let file_ranges = parse_file_ranges(lines, context_separator);
 
     let mut first_file_written = false;
 
@@ -154,14 +153,14 @@ fn main() -> Result<()> {
     let reader = BufReader::new(file);
 
     let changes = parse_modified_file(reader, &file_ranges, context_separator, filename_prefix)?;
-    apply_changes_to_file_ranges(&changes, &mut file_ranges, args.require_all_files)?;
+    apply_changes_to_file_ranges(&changes, &file_ranges, args.require_all_files)?;
 
     Ok(())
 }
 
 fn apply_changes_to_file_ranges(
     changes: &HashMap<String, Vec<Vec<String>>>,
-    file_ranges: &mut HashMap<String, Vec<(usize, usize)>>,
+    file_ranges: &HashMap<String, Vec<(usize, usize)>>,
     require_all_files: bool,
 ) -> Result<()> {
     if require_all_files {
