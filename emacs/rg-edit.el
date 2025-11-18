@@ -105,10 +105,10 @@
 
 (defun gptel-rewrite-rg-edit ()
   (when (string-match-p "\\.rg-edit" (buffer-name))
-    (concat "You are a careful programmer. Rewrite cross-file snippnets.\n"
+    (concat "You are a careful programmer. Rewrite cross-file snippets.\n"
 	    "Rewrite everything exactly the same except: the required change.\n"
 	    "Keep the filenames at the start of the files.\n"
-	    "Keep the separators at the end of the snippnets.\n"
+	    "Keep the separators at the end of the snippets.\n"
 	    "Do not delete the filenames and the separators.\n"
 	    "Do not add markdown fences.\n"
 	    "Do not ask clarification.")))

@@ -70,10 +70,10 @@ This works best with tools like [`gptel-rewrite`](https://github.com/karthink/gp
 To be effective, `ripgrep-edit` requires a well-crafted prompt:
 
 ```
-You are a careful programmer. Rewrite cross-file snippnets.
+You are a careful programmer. Rewrite cross-file snippets.
 Rewrite everything exactly the same except: the required change.
 Keep the filenames at the start of the files.
-Keep the separators at the end of the snippnets.
+Keep the separators at the end of the snippets.
 Do not delete the filenames and the separators.
 Do not add markdown fences.
 Do not ask clarification.

@@ -118,7 +118,7 @@ fn main() -> Result<()> {
         }
     }
 
-    // Write context separator after the last line of the last snippnet
+    // Write context separator after the last line of the last snippet
     if first_file_written {
         writeln!(file, "{context_separator}")?;
     }
@@ -175,16 +175,16 @@ fn apply_changes_to_file_ranges(
         }
     }
 
-    // When require_all_files is false, we only check that all blocks
+    // When require_all_files is false, we only check that all snippets
     // in changes are ranges present in file_ranges
-    for (file_path, blocks) in changes.iter() {
+    for (file_path, snippets) in changes.iter() {
         let ranges = file_ranges.get(file_path).unwrap();
-        if ranges.len() != blocks.len() {
+        if ranges.len() != snippets.len() {
             return Err(anyhow::anyhow!(
-                "Mismatch in block count for file {}: expected {}, got {}",
+                "Mismatch in snippet count for file {}: expected {}, got {}",
                 file_path,
                 ranges.len(),
-                blocks.len()
+                snippets.len()
             ));
         }
     }
@@ -201,9 +201,9 @@ fn apply_changes_to_file_ranges(
                 let end = range.1; // End is exclusive in our range
 
                 // Replace the lines in the file
-                if let Some(block) = file_changes.get(i) {
+                if let Some(snippet) = file_changes.get(i) {
                     // Replace the range with new content
-                    lines.splice(start..end, block.clone().into_iter());
+                    lines.splice(start..end, snippet.clone().into_iter());
                 }
             }
 
@@ -298,7 +298,7 @@ fn parse_modified_file(
     let mut changes: HashMap<String, Vec<Vec<String>>> = HashMap::new();
     let mut current_file = String::new();
     let mut current_lines: Vec<String> = Vec::new();
-    let mut current_block: Vec<Vec<String>> = Vec::new();
+    let mut current_snippet: Vec<Vec<String>> = Vec::new();
     let mut prev_line_empty = false;
     let mut pprev_line_separator = false;
 
@@ -312,12 +312,12 @@ fn parse_modified_file(
             }
             if current_lines.is_empty() {
                 return Err(anyhow::anyhow!(
-                    "Empty block found in file: {}",
+                    "Empty snippet found in file: {}",
                     current_file
                 ));
             }
 
-            current_block.push(current_lines.clone());
+            current_snippet.push(current_lines.clone());
             current_lines.clear();
 
             prev_line_empty = false;
@@ -343,8 +343,8 @@ fn parse_modified_file(
                 }
                 assert!(!current_lines.is_empty());
 
-                changes.insert(current_file.clone(), current_block.clone());
-                current_block.clear();
+                changes.insert(current_file.clone(), current_snippet.clone());
+                current_snippet.clear();
             } else {
                 assert!(!pprev_line_separator);
                 if !current_lines.is_empty() {
@@ -375,7 +375,7 @@ fn parse_modified_file(
             assert!(!prev_line_empty);
             assert!(pprev_line_separator);
         }
-        changes.insert(current_file.clone(), current_block.clone());
+        changes.insert(current_file.clone(), current_snippet.clone());
     }
 
     Ok(changes)
