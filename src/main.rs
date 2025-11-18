@@ -66,11 +66,10 @@ fn main() -> Result<()> {
         Ok(_) => {}
         Err(e) => {
             if e.kind() == std::io::ErrorKind::NotFound {
-                eprintln!("Error: rg is not installed.");
+                anyhow::bail!("Error: rg is not installed.");
             } else {
-                eprintln!("Failed to execute rg: {e}");
+                anyhow::bail!("Failed to execute rg: {e}");
             }
-            std::process::exit(1);
         }
     }
     let output_str = String::from_utf8_lossy(&output.unwrap().stdout).into_owned();
