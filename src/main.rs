@@ -12,6 +12,117 @@ use std::time::SystemTime;
 
 include!("args.rs");
 
+#[derive(Debug)]
+struct FileRange {
+    start: usize,
+    end: usize,
+    lines: Vec<String>,
+}
+
+impl FileRange {
+    fn new(start: usize, end: usize, lines: Vec<String>) -> Self {
+        Self { start, end, lines }
+    }
+}
+
+#[derive(Debug)]
+struct FileRanges {
+    filenames: Vec<String>,
+    hash: HashMap<String, Vec<FileRange>>,
+}
+
+impl FileRanges {
+    fn new() -> Self {
+        Self {
+            filenames: Vec::new(),
+            hash: HashMap::new(),
+        }
+    }
+
+    fn contains_key(&self, key: &str) -> bool {
+        self.hash.contains_key(key)
+    }
+
+    fn add(&mut self, filename: &str, value: FileRange) {
+        if !self.contains_key(filename) {
+            self.filenames.push(filename.to_string());
+        }
+        self.hash
+            .entry(filename.to_string())
+            .or_default()
+            .push(value);
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (&String, &Vec<FileRange>)> {
+        self.filenames
+            .iter()
+            .filter_map(move |filename| self.hash.get(filename).map(|ranges| (filename, ranges)))
+    }
+
+    fn validate(&self) -> Result<()> {
+        // Check all FileRange and enforce the range.start..range.end matches lines.len()
+        for (filename, ranges) in &self.hash {
+            if ranges.is_empty() {
+                anyhow::bail!("Empty ranges for file: {}", filename);
+            }
+            for range in ranges {
+                if range.lines.is_empty() {
+                    anyhow::bail!("Empty lines in range for file {}", filename);
+                }
+                let expected_lines = range.end - range.start + 1;
+                if expected_lines != range.lines.len() {
+                    anyhow::bail!(
+                        "Mismatch in line count for file {} at range {:?}: expected {}, got {}",
+                        filename,
+                        range,
+                        expected_lines,
+                        range.lines.len()
+                    );
+                }
+            }
+        }
+
+        // Use a HashSet and verify there's no dup in the filenames
+        // and that the filenames HashSet is equal to the HashSet
+        // created from hash.keys()
+        let filenames_set: HashSet<&String> = self.filenames.iter().collect();
+        let hash_keys_set: HashSet<&String> = self.hash.keys().collect();
+
+        if filenames_set.len() != self.filenames.len() {
+            anyhow::bail!("Duplicate filenames found in filenames list");
+        }
+
+        if filenames_set != hash_keys_set {
+            anyhow::bail!("Mismatch between filenames list and hash keys");
+        }
+        Ok(())
+    }
+
+    fn write(
+        &self,
+        file: &mut std::fs::File,
+        context_separator: &str,
+        filename_prefix: &str,
+    ) -> Result<()> {
+        for (i, (filename, ranges)) in self.iter().enumerate() {
+            if i > 0 {
+                writeln!(file)?;
+            }
+            writeln!(file, "{}{}", filename_prefix, filename)?;
+            for range in ranges {
+                writeln!(file, "{}", range.lines.join("\n"))?;
+                writeln!(file, "{context_separator}")?;
+            }
+        }
+        file.flush()?;
+        Ok(())
+    }
+}
+
+type FileChanges = HashMap<String, Vec<Vec<String>>>;
+
+const RG_SEPARATOR: &str = ":";
+
 fn dedup_slashes(line: &str) -> String {
     let mut chars = line.chars().collect::<Vec<char>>();
     chars.dedup_by(|a, b| *a == '/' && *a == *b);
@@ -32,7 +143,8 @@ fn main() -> Result<()> {
         .arg(format!("-C{}", args.context))
         .arg("--heading")
         .arg("--color=never")
-        .arg("--field-context-separator=:")
+        .arg(format!("--field-context-separator={}", RG_SEPARATOR))
+        .arg(format!("--field-match-separator={}", RG_SEPARATOR))
         .arg(format!("--context-separator={context_separator}"))
         .arg("-e")
         .arg(&args.regexp);
@@ -73,56 +185,20 @@ fn main() -> Result<()> {
             }
         }
     }
-    let output_str = String::from_utf8_lossy(&output.unwrap().stdout).into_owned();
-    if output_str.trim().is_empty() {
+    let rg_output = String::from_utf8_lossy(&output.unwrap().stdout).into_owned();
+    if rg_output.trim().is_empty() {
         eprintln!("No results found.");
         std::process::exit(0);
     }
-    let temp_file = tempfile::Builder::new()
+    let mut temp_file = tempfile::Builder::new()
         .prefix("rg-edit-")
         .suffix(".rg-edit")
         .tempfile()?;
-    let temp_path = temp_file.path().to_str().unwrap();
-    let mut file = temp_file.as_file();
+    let temp_path = temp_file.path().to_str().unwrap().to_string();
+    let file = temp_file.as_file_mut();
 
-    // Parse the output to extract file paths before writing to temp file
-    let lines = output_str.lines().peekable();
-
-    let file_ranges = parse_file_ranges(lines, context_separator);
-
-    let mut first_file_written = false;
-
-    for line in output_str.lines() {
-        if line.starts_with(|c: char| c.is_ascii_digit()) {
-            let colon_pos = line.find(':').unwrap();
-            // Remove the "number:" prefix from lines starting with digits
-            let after_colon = &line[colon_pos + 1..];
-            if after_colon == context_separator {
-                panic!("context_separator found after colon in line: {line}");
-            }
-            writeln!(file, "{after_colon}")?;
-        } else {
-            let line = dedup_slashes(line);
-            // Check if this line matches a file in file_ranges and is not the first file
-            let is_file_match = file_ranges.contains_key(&line);
-            if is_file_match {
-                if first_file_written {
-                    writeln!(file, "{context_separator}\n")?;
-                } else {
-                    first_file_written = true;
-                }
-                writeln!(file, "{filename_prefix}{line}")?;
-            } else if &line == context_separator {
-                writeln!(file, "{line}")?;
-            }
-        }
-    }
-
-    // Write context separator after the last line of the last snippet
-    if first_file_written {
-        writeln!(file, "{context_separator}")?;
-    }
-    file.flush()?;
+    let file_ranges = parse_rg_output(&rg_output, context_separator)?;
+    file_ranges.write(file, context_separator, filename_prefix)?;
 
     // Set the temp_path modification time to 1 day before the current time
     let before_edit = SystemTime::now() - Duration::from_secs(24 * 60 * 60);
@@ -140,7 +216,7 @@ fn main() -> Result<()> {
     }
 
     // Get modification time after editor
-    let after_edit = fs::metadata(temp_path)?.modified()?;
+    let after_edit = fs::metadata(&temp_path)?.modified()?;
 
     // Check if the file was modified
     if after_edit <= before_edit {
@@ -159,13 +235,15 @@ fn main() -> Result<()> {
 }
 
 fn apply_changes_to_file_ranges(
-    changes: &HashMap<String, Vec<Vec<String>>>,
-    file_ranges: &HashMap<String, Vec<(usize, usize)>>,
+    changes: &FileChanges,
+    file_ranges: &FileRanges,
     require_all_files: bool,
 ) -> Result<()> {
-    let file_ranges_keys: HashSet<&String> = file_ranges.keys().collect();
+    let file_ranges_keys: HashSet<&String> = file_ranges.filenames.iter().collect();
     let changes_keys: HashSet<&String> = changes.keys().collect();
-    assert!(changes_keys.difference(&file_ranges_keys).next().is_none());
+    if !changes_keys.is_subset(&file_ranges_keys) {
+        return Err(anyhow::anyhow!("Changes contain files not found in ranges"));
+    }
     if require_all_files {
         let missing_files: Vec<&String> = file_ranges_keys
             .difference(&changes_keys)
@@ -179,7 +257,7 @@ fn apply_changes_to_file_ranges(
     // When require_all_files is false, we only check that all snippets
     // in changes are ranges present in file_ranges
     for (file_path, snippets) in changes.iter() {
-        let ranges = file_ranges.get(file_path).unwrap();
+        let ranges = file_ranges.hash.get(file_path).unwrap();
         if ranges.len() != snippets.len() {
             return Err(anyhow::anyhow!(
                 "Mismatch in snippet count for file {}: expected {}, got {}",
@@ -191,15 +269,15 @@ fn apply_changes_to_file_ranges(
     }
 
     for (file_path, file_changes) in changes {
-        if let Some(ranges) = file_ranges.get(file_path) {
+        if let Some(ranges) = file_ranges.hash.get(file_path) {
             // Read the original file
             let content = std::fs::read_to_string(file_path)?;
             let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
 
             // Process ranges in reverse order to maintain correct indices
             for (i, range) in ranges.iter().enumerate().rev() {
-                let start = range.0 - 1; // Convert to 0-based indexing
-                let end = range.1; // End is exclusive in our range
+                let start = range.start - 1; // Convert to 0-based indexing
+                let end = range.end; // End is exclusive in our range
 
                 // Replace the lines in the file
                 if let Some(snippet) = file_changes.get(i) {
@@ -216,13 +294,13 @@ fn apply_changes_to_file_ranges(
     Ok(())
 }
 
-fn parse_file_ranges<'a>(
-    lines: impl Iterator<Item = &'a str>,
-    context_separator: &str,
-) -> HashMap<String, Vec<(usize, usize)>> {
-    let mut file_ranges: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
+fn parse_rg_output(rg_output: &str, context_separator: &str) -> Result<FileRanges> {
+    // Parse the output to extract file paths before writing to temp file
+    let lines = rg_output.lines().peekable();
+
+    let mut file_ranges: FileRanges = FileRanges::new();
     let mut current_file: Option<String> = None;
-    let mut current_range: Option<(usize, usize)> = None;
+    let mut current_range: Option<FileRange> = None;
     let mut prev_line_empty = true;
 
     for line in lines {
@@ -231,72 +309,88 @@ fn parse_file_ranges<'a>(
             continue;
         }
 
-        if line == context_separator {
-            let current = current_file.as_ref().unwrap();
-            if let Some(range) = current_range {
-                file_ranges.entry(current.clone()).or_default().push(range);
+        // Check if line is a file path
+        if prev_line_empty {
+            let line = dedup_slashes(line);
+
+            if !Path::new(&line).exists() {
+                anyhow::bail!("File does not exist: {}", line);
+            }
+
+            if let Some(ref current) = current_file {
+                if current != &line {
+                    if let Some(range) = current_range {
+                        file_ranges.add(current, range);
+                    }
+                    current_file = Some(line.to_string());
+                }
+            } else {
+                current_file = Some(line.to_string());
             }
             current_range = None;
             prev_line_empty = false;
             continue;
         }
 
-        // Check if line is a file path
-        if !line.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-            assert!(prev_line_empty);
-            let line = dedup_slashes(line);
-            if Path::new(&line).exists() {
-                if let Some(ref current) = current_file {
-                    if current != &line {
-                        if let Some(range) = current_range {
-                            file_ranges.entry(current.clone()).or_default().push(range);
-                        }
-                        current_file = Some(line.to_string());
-                    }
-                } else {
-                    current_file = Some(line.to_string());
-                }
-                current_range = None;
-                prev_line_empty = false;
-                continue;
+        if current_file.is_none() {
+            anyhow::bail!("No current file set when processing line: {}", line);
+        }
+
+        if line == context_separator {
+            let current = current_file.as_ref().unwrap();
+            if let Some(range) = current_range {
+                file_ranges.add(current, range);
             }
+            current_range = None;
+            prev_line_empty = false;
+            continue;
         }
 
         // Check if line matches the format: linenumber:code
-        let mut parts = line.splitn(2, ':');
+        let mut parts = line.splitn(2, RG_SEPARATOR);
         if let Some(line_num_str) = parts.next()
             && let Ok(line_num) = line_num_str.parse::<usize>()
         {
-            assert!(current_file.is_some());
+            let line = parts.next().unwrap().to_string();
+            if line == context_separator {
+                anyhow::bail!("context_separator found in file: {}", current_file.unwrap());
+            }
             // Same file, extend range
             if let Some(ref mut range) = current_range {
-                range.1 = line_num;
+                range.end = line_num;
+                range.lines.push(line);
             } else {
-                current_range = Some((line_num, line_num));
+                current_range = Some(FileRange::new(line_num, line_num, vec![line]));
             }
+        } else {
+            anyhow::bail!("Failed to parse line number from line: {}", line);
         }
         prev_line_empty = false;
     }
 
     if let Some(ref current) = current_file {
-        assert!(!prev_line_empty);
+        if prev_line_empty {
+            anyhow::bail!(
+                "Unexpected empty line after file processing for file: {}",
+                current
+            );
+        }
         if let Some(range) = current_range {
-            file_ranges.entry(current.clone()).or_default().push(range);
+            file_ranges.add(current, range);
         }
     }
 
-    file_ranges
+    file_ranges.validate()?;
+    Ok(file_ranges)
 }
-
-type FileChangesResult = Result<HashMap<String, Vec<Vec<String>>>>;
 
 fn parse_modified_file(
     reader: BufReader<File>,
-    file_ranges: &HashMap<String, Vec<(usize, usize)>>,
+    file_ranges: &FileRanges,
     context_separator: &str,
     filename_prefix: &str,
-) -> FileChangesResult {
-    let mut changes: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+) -> Result<FileChanges> {
+    let mut changes: FileChanges = HashMap::new();
     let mut current_file = String::new();
     let mut current_lines: Vec<String> = Vec::new();
     let mut current_snippet: Vec<Vec<String>> = Vec::new();
@@ -344,7 +438,12 @@ fn parse_modified_file(
                 }
                 assert!(!current_lines.is_empty());
 
-                changes.insert(current_file.clone(), current_snippet.clone());
+                if changes
+                    .insert(current_file.clone(), current_snippet.clone())
+                    .is_some()
+                {
+                    return Err(anyhow::anyhow!("Duplicate file found: {}", current_file));
+                }
                 current_snippet.clear();
             } else {
                 assert!(!pprev_line_separator);
@@ -376,7 +475,12 @@ fn parse_modified_file(
             assert!(!prev_line_empty);
             assert!(pprev_line_separator);
         }
-        changes.insert(current_file.clone(), current_snippet.clone());
+        if changes
+            .insert(current_file.clone(), current_snippet.clone())
+            .is_some()
+        {
+            return Err(anyhow::anyhow!("Duplicate file found: {}", current_file));
+        }
     }
 
     Ok(changes)
