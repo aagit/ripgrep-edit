@@ -473,12 +473,10 @@ fn parse_modified_file(
                     ));
                 }
                 if !prev_line_empty {
-                    return Err(anyhow::anyhow!(
-                        "Line not empty before file: {}",
-                        &normalized_line
-                    ));
+                    eprintln!("Warning: Line not empty before file: {}", &normalized_line);
+                } else {
+                    assert!(!current_lines.is_empty());
                 }
-                assert!(!current_lines.is_empty());
 
                 if changes
                     .insert(current_file.clone(), current_snippet.clone())
