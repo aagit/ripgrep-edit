@@ -3,11 +3,12 @@
 
 use anyhow::Result;
 use std::collections::HashMap;
-use std::fs;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
+use std::time::SystemTime;
 
 include!("args.rs");
 
@@ -124,8 +125,9 @@ fn main() -> Result<()> {
     }
     file.flush()?;
 
-    // Get modification time before opening editor
-    let before_edit = fs::metadata(temp_path)?.modified()?;
+    // Set the temp_path modification time to 1 day before the current time
+    let before_edit = SystemTime::now() - Duration::from_secs(24 * 60 * 60);
+    file.set_modified(before_edit)?;
 
     // Open with editor
     let mut editor_cmd = Command::new("sh");
