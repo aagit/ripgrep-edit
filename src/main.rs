@@ -2,7 +2,7 @@
 // Copyright (C) 2025  Red Hat, Inc.
 
 use anyhow::Result;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
@@ -163,15 +163,16 @@ fn apply_changes_to_file_ranges(
     file_ranges: &HashMap<String, Vec<(usize, usize)>>,
     require_all_files: bool,
 ) -> Result<()> {
+    let file_ranges_keys: HashSet<&String> = file_ranges.keys().collect();
+    let changes_keys: HashSet<&String> = changes.keys().collect();
+    assert!(changes_keys.difference(&file_ranges_keys).next().is_none());
     if require_all_files {
-        let mut file_ranges_keys: Vec<&String> = file_ranges.keys().collect();
-        file_ranges_keys.sort();
-        let mut changes_keys: Vec<&String> = changes.keys().collect();
-        changes_keys.sort();
-        if file_ranges_keys != changes_keys {
-            return Err(anyhow::anyhow!(
-                "File ranges keys do not match changes keys. Expected: {changes_keys:?}, Got: {file_ranges_keys:?}"
-            ));
+        let missing_files: Vec<&String> = file_ranges_keys
+            .difference(&changes_keys)
+            .copied()
+            .collect();
+        if !missing_files.is_empty() {
+            return Err(anyhow::anyhow!("Missing files: {:?}", missing_files));
         }
     }
 
