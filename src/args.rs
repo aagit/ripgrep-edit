@@ -62,9 +62,27 @@ pub struct Args {
     #[clap(long = "multiline-dotall")]
     multiline_dotall: bool,
 
+    /// Sort results
+    #[clap(long, default_value = "none", value_enum)]
+    sort: SortBy,
+
+    /// Sort results in reverse
+    #[clap(long, default_value = "none", value_enum)]
+    sortr: SortBy,
+
     /// Paths to search in
     #[clap(num_args(0..))]
     paths: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, clap::ValueEnum, PartialEq)]
+pub enum SortBy {
+    #[default]
+    None,
+    Path,
+    Modified,
+    Accessed,
+    Created,
 }
 
 // Local Variables:

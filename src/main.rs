@@ -12,6 +12,15 @@ use std::time::SystemTime;
 
 include!("args.rs");
 
+impl Args {
+    pub fn validate(&self) -> Result<()> {
+        if self.sort != SortBy::None && self.sortr != SortBy::None {
+            return Err(anyhow::anyhow!("Cannot specify both --sort and --sortr"));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 struct FileRange {
     start: usize,
@@ -131,6 +140,7 @@ fn dedup_slashes(line: &str) -> String {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    args.validate()?;
 
     // Run rg with context lines
     let context_separator = &args.context_separator;
@@ -169,6 +179,26 @@ fn main() -> Result<()> {
     }
     if args.multiline_dotall {
         rg_cmd.arg("--multiline-dotall");
+    }
+    if args.sort != SortBy::None {
+        rg_cmd.arg("--sort");
+        rg_cmd.arg(match args.sort {
+            SortBy::None => unreachable!(),
+            SortBy::Path => "path",
+            SortBy::Modified => "modified",
+            SortBy::Accessed => "accessed",
+            SortBy::Created => "created",
+        });
+    }
+    if args.sortr != SortBy::None {
+        rg_cmd.arg("--sortr");
+        rg_cmd.arg(match args.sortr {
+            SortBy::None => unreachable!(),
+            SortBy::Path => "path",
+            SortBy::Modified => "modified",
+            SortBy::Accessed => "accessed",
+            SortBy::Created => "created",
+        });
     }
     for path in &args.paths {
         rg_cmd.arg(path);
