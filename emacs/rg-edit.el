@@ -17,6 +17,45 @@
   :type 'string
   :group 'rg-edit)
 
+(defcustom rg-edit-gptel-system-message
+  (concat "You are a careful programmer. Rewrite cross-file snippets.\n"
+	  "Rewrite everything exactly the same except: the required change.\n"
+	  "Keep the filenames at the start of the files.\n"
+	  "Keep the separators at the end of the snippets.\n"
+	  "Do not delete the filenames and the separators.\n"
+	  "Do not add markdown fences.\n"
+	  "Do not ask clarification.")
+  "The rg-edit gptel-system-message to use when in a rg-edit buffer."
+  :type 'string
+  :group 'rg-edit)
+
+(defcustom rg-edit-workaround-gptel-rewrite-directives-hook t
+  "Enable workaround for gptel-rewrite-directives-hook regression
+
+Due to a regression introduced in gptel commit
+89d1b4768d9ab1d2624cb68d826f2134cb4c067e, the
+gptel-rewrite-directives-hook dynamic prompt appears functional (TAB
+after gptel-rewrite shows the expected prompt), but the generic prompt
+is silently used instead. This can be confirmed using Inspect (`I` key
+with gptel-expert-commands enabled). rg-edit relies on a precise
+prompt format, and this regression may falsely suggest that the LLM
+cannot handle the rg-edit structure when in reality it's a gptel bug.
+
+The issue originated in gptel v0.9.8.5 and persists. A tentative fix
+was submitted in pull request #1095.
+
+The rg-edit-workaround-gptel-rewrite-directives-hook setting disables
+gptel-rewrite-directives-hook and instead directly sets
+gptel--rewrite-directive in the local rg-edit buffer.
+
+Although gptel--rewrite-directive is documented as internal-only, it
+is functional, while the intended hook mechanism fails. Enabling this
+workaround ensures that rg-edit is processed with the correct system
+prompt, preserving functionality until the upstream issue is
+resolved."
+  :type 'boolean
+  :group 'rg-edit)
+
 (define-key global-map (kbd "C-c C-x g") #'rg-edit-git)
 (define-key global-map (kbd "C-c C-x C-g") #'rg-edit-git-conflicts)
 
@@ -112,16 +151,31 @@
 		     "Automatic file revert is not enabled. Consider enabling it with `M-x global-auto-revert-mode`."
 		    :warning)))
 
-(defun gptel-rewrite-rg-edit ()
-  (when (string-match-p "\\.rg-edit" (buffer-name))
-    (concat "You are a careful programmer. Rewrite cross-file snippets.\n"
-	    "Rewrite everything exactly the same except: the required change.\n"
-	    "Keep the filenames at the start of the files.\n"
-	    "Keep the separators at the end of the snippets.\n"
-	    "Do not delete the filenames and the separators.\n"
-	    "Do not add markdown fences.\n"
-	    "Do not ask clarification.")))
-(add-hook 'gptel-rewrite-directives-hook #'gptel-rewrite-rg-edit)
+(defun rg-edit--gptel-rewrite ()
+  (when (string-match-p "\\.rg-edit\\'" (buffer-file-name))
+    rg-edit-gptel-system-message))
+(when (not rg-edit-workaround-gptel-rewrite-directives-hook)
+  (add-hook 'gptel-rewrite-directives-hook #'rg-edit--gptel-rewrite))
+
+(defun rg-edit--setup-gptel-directives ()
+  "Set up gptel directives for rg-edit."
+  (when (boundp 'gptel-directives)
+    (setf (alist-get 'rg-edit gptel-directives)
+          rg-edit-gptel-system-message)))
+
+(defun rg-edit--setup-gptel--rewrite-directive ()
+  (when rg-edit-workaround-gptel-rewrite-directives-hook
+    ;; workaround for gptel issue in pull request #1095
+    (setq-local gptel--rewrite-directive
+		rg-edit-gptel-system-message)))
+
+(defun rg-edit-mode ()
+  (prog-mode)
+  (rg-edit--setup-gptel-directives)
+  (rg-edit--setup-gptel--rewrite-directive)
+)
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.rg-edit\\'" . rg-edit-mode))
 
 (provide 'rg-edit)
 
