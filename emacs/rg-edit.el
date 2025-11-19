@@ -152,10 +152,10 @@ resolved."
 		    :warning)))
 
 (defun rg-edit--gptel-rewrite ()
-  (when (string-match-p "\\.rg-edit\\'" (buffer-file-name))
+  (when (and (not rg-edit-workaround-gptel-rewrite-directives-hook)
+             (string-match-p "\\.rg.edit\\'" (buffer-file-name)))
     rg-edit-gptel-system-message))
-(when (not rg-edit-workaround-gptel-rewrite-directives-hook)
-  (add-hook 'gptel-rewrite-directives-hook #'rg-edit--gptel-rewrite))
+(add-hook 'gptel-rewrite-directives-hook #'rg-edit--gptel-rewrite)
 
 (defun rg-edit--setup-gptel-directives ()
   "Set up gptel directives for rg-edit."
