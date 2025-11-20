@@ -56,8 +56,7 @@ resolved."
   :type 'boolean
   :group 'rg-edit)
 
-(define-key global-map (kbd "C-c C-x g") #'rg-edit-git)
-(define-key global-map (kbd "C-c C-x C-g") #'rg-edit-git-conflicts)
+(define-key global-map (kbd "C-c r") #'rg-edit-git)
 
 (defun rg-edit--check-server ()
   "Check if the Emacs server is running and signal an error if not."
@@ -113,6 +112,7 @@ resolved."
 (defun rg-edit--invoke (regexp path extra-args get-path-fn)
   "Invoke rg-edit with REGEXP, PATH, EXTRA-ARGS using GET-PATH-FN to determine the path."
   (rg-edit--check-server)
+  (rg-edit--warn-if-auto-revert-disabled)
   (let ((search-regexp (or regexp
 			   (if (use-region-p)
 			       (buffer-substring-no-properties (region-beginning) (region-end))
@@ -126,23 +126,24 @@ resolved."
 	      (extra-args (rg-edit--collect-extra-args extra-args)))
 	  (rg-edit--run-command search-regexp search-path extra-args))))))
 
-(defun rg-edit (&optional regexp path extra-args)
-  "Invoke rg-edit with REGEXP, PATH and EXTRA-ARGS."
+(defun rg-edit ()
+  "Invoke rg-edit with the path in the current directory."
   (interactive)
-  (rg-edit--warn-if-auto-revert-disabled)
-  (rg-edit--invoke regexp path extra-args #'rg-edit--get-path))
+  (rg-edit--invoke nil nil nil #'rg-edit--get-path))
 
-(defun rg-edit-git (&optional regexp path extra-args)
-  "Invoke rg-edit-git with REGEXP, PATH and EXTRA-ARGS."
+(defun rg-edit-git-conflicts ()
+  "Invoke rg-edit-git with regex and extra-args preset to edit git conflicts."
   (interactive)
-  (rg-edit--warn-if-auto-revert-disabled)
-  (rg-edit--invoke regexp path extra-args #'rg-edit--get-git-path))
+  (rg-edit--invoke "(?s)^<<<<<<<+ .*?^>>>>>>>+ " nil "-U" #'rg-edit--get-git-path))
 
-(defun rg-edit-git-conflicts (&optional regexp path extra-args)
-  "Invoke rg-edit-git with PATH and EXTRA-ARGS."
-  (interactive)
-  (rg-edit--warn-if-auto-revert-disabled)
-  (rg-edit--invoke "(?s)^<<<<<<<+ .*?^>>>>>>>+ " path "-U" #'rg-edit--get-git-path))
+(defun rg-edit-git (&optional arg)
+  "Invoke rg-edit-git with the search path set in the git root.
+
+With a C-u prefix argument invoke rg-edit-git-conflicts instead."
+  (interactive "p")
+  (cond
+   ((= arg 1) (rg-edit--invoke nil nil nil #'rg-edit--get-git-path))
+   ((= arg 4) (rg-edit-git-conflicts))))
 
 (defun rg-edit--warn-if-auto-revert-disabled ()
   "Warn if automatic file revert is not enabled."
