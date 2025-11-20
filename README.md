@@ -84,10 +84,16 @@ Do not ask clarification.
 ## rg-edit.el
 
 - Provides `rg-edit`, `rg-edit-git`, `rg-edit-git-conflicts` functions
+- `rg-edit-git` **C-c r**
+- `rg-edit-git-conflicts` **C-u C-c r**
 
 ```elisp
-(load-file "~/.../ripgrep-edit/emacs/rg-edit.el")
-(setq-default rg-edit-executable "~/.../ripgrep-edit/target/release/rg-edit")
+(add-to-list 'load-path "~/.../ripgrep-edit/emacs/")
+(use-package rg-edit
+  :ensure nil
+  :config
+  (setq-default rg-edit-auto-mark-whole-buffer t)
+  (setq-default rg-edit-executable "~/.../ripgrep-edit/target/release/rg-edit"))
 ```
 
 ## Why Not wgrep?

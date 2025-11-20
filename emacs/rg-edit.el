@@ -5,10 +5,19 @@
 
 ;;; Commentary:
 
-;; This module provides a function `rg-edit` that invokes the rg-edit
-;; executable with the current region or word as the regexp and the
-;; current buffer's directory as the path.  It requires rg-edit to be
-;; installed and in PATH.
+;; This module provides helper functions to invoke the `rg-edit` executable
+;; with the current region or word as the search pattern. It requires the `rg-edit`
+;; binary to be installed and accessible in the system PATH or configured via
+;; `rg-edit-executable`.
+
+;;; Example configuration:
+
+;; (add-to-list 'load-path "~/.../ripgrep-edit/emacs/")
+;; (use-package rg-edit
+;;   :ensure nil
+;;   :config
+;;   (setq-default rg-edit-auto-mark-whole-buffer t)
+;;   (setq-default rg-edit-executable "~/.../ripgrep-edit/target/release/rg-edit"))
 
 ;;; Code:
 
