@@ -29,6 +29,12 @@
   :type 'string
   :group 'rg-edit)
 
+(defcustom rg-edit-auto-mark-whole-buffer nil
+  "If non-nil, mark the whole buffer when entering rg-edit-mode.
+This prepares the buffer for AI rewriting by selecting all content."
+  :type 'boolean
+  :group 'rg-edit)
+
 (defcustom rg-edit-workaround-gptel-rewrite-directives-hook t
   "Enable workaround for gptel-rewrite-directives-hook regression
 
@@ -174,7 +180,8 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (prog-mode)
   (rg-edit--setup-gptel-directives)
   (rg-edit--setup-gptel--rewrite-directive)
-)
+  (when rg-edit-auto-mark-whole-buffer
+    (mark-whole-buffer)))
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rg-edit\\'" . rg-edit-mode))
 
