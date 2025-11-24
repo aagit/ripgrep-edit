@@ -96,6 +96,9 @@ resolved."
 	 (default-directory (file-name-directory path-dir))
 	 (dir-name (file-name-nondirectory path-dir))
 	 (process-buffer (get-buffer-create "*rg-edit*")))
+    (save-some-buffers
+     nil (lambda () (string-prefix-p (file-truename dir-name)
+				     (file-truename (buffer-file-name)))))
     (rg-edit--cleanup-buffer process-buffer)
     (apply #'start-process "rg-edit"
 	   process-buffer
