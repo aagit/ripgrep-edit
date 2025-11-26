@@ -188,10 +188,16 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
     (setq-local gptel--rewrite-directive
 		rg-edit-gptel-system-message)))
 
+(defun rg-edit--kill-buffer-hook ()
+  "Interrupt any in-flight gptel-send request when the buffer is closed."
+  (when (fboundp 'gptel-abort)
+    (gptel-abort (current-buffer))))
+
 (defun rg-edit-mode ()
   (prog-mode)
   (rg-edit--setup-gptel-directives)
   (rg-edit--setup-gptel--rewrite-directive)
+  (add-hook 'kill-buffer-hook #'rg-edit--kill-buffer-hook nil t)
   (when rg-edit-auto-mark-whole-buffer
     (mark-whole-buffer)))
 ;;;###autoload
