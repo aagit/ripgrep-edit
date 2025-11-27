@@ -198,6 +198,7 @@ impl FileRanges {
     }
 
     fn write(&self, file: &mut std::fs::File) -> Result<()> {
+        writeln!(file, "```")?;
         for (i, (filename, ranges)) in self.iter().enumerate() {
             if i > 0 {
                 writeln!(file)?;
@@ -208,6 +209,7 @@ impl FileRanges {
                 writeln!(file, "{}", self.context_separator)?;
             }
         }
+        writeln!(file, "```")?;
         file.flush()?;
         Ok(())
     }
@@ -444,10 +446,17 @@ fn parse_modified_file(
     let mut current_snippet: Vec<Vec<String>> = Vec::new();
     let mut prev_line_empty = false;
     let mut pprev_line_separator = false;
+    let mut first = true;
 
     for line in reader.lines() {
         let line = line?;
         processed_lines.push(line.clone());
+
+        if first && line == "```" {
+            first = false;
+            continue;
+        }
+
         if line == context_separator {
             if current_file.is_empty() {
                 return Err(anyhow::anyhow!(
@@ -517,6 +526,10 @@ fn parse_modified_file(
     }
 
     if !current_file.is_empty() {
+        if current_lines == vec!["```".to_string()] {
+            current_lines.pop();
+            pprev_line_separator = true;
+        }
         if !current_lines.is_empty() {
             eprintln!("Warning: Trailing lines after last file: {}", current_file);
         } else {
