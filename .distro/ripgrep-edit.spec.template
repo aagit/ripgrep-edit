@@ -5,7 +5,7 @@
 %global cargo_install_lib 0
 
 Name:           ripgrep-edit
-Version:        0.2.8
+Version:        @@RIPGREP-VERSION@@
 Release:        %autorelease
 Summary:        Edit ripgrep search results across multiple files
 
