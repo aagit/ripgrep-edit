@@ -87,6 +87,7 @@ resolved."
 (defun rg-edit--cleanup-buffer (buffer)
   "Clean up the *rg-edit* buffer before running rg-edit."
   (with-current-buffer buffer
+    (read-only-mode -1)
     (erase-buffer)
     (goto-char (point-min))))
 
@@ -95,7 +96,7 @@ resolved."
   (let* ((path-dir (directory-file-name path))
 	 (default-directory (file-name-directory path-dir))
 	 (dir-name (file-name-nondirectory path-dir))
-	 (process-buffer (get-buffer-create "*rg-edit*")))
+	 (process-buffer (get-buffer-create "*rg-edit*" t)))
     (save-some-buffers
      nil (lambda () (string-prefix-p (file-truename dir-name)
 				     (file-truename (buffer-file-name)))))
