@@ -23,6 +23,17 @@ cd ripgrep-edit
 cargo build --release
 ```
 
+## Distro Packages
+
+### Fedora Copr
+A Fedora Copr package is available:
+```bash
+# dnf copr enable vittyvk/ripgrep-edit
+# dnf install ripgrep-edit
+```
+
+The Copr is built for Fedora rawhide / 43 / 42.
+
 ## Options
 
 - `-e, --regexp <REGEXP>`: Regex pattern to search for  
