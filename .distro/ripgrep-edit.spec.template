@@ -38,6 +38,8 @@ Edit ripgrep search results across multiple files.}
 %cargo_install
 mkdir -p %{buildroot}%{_datarootdir}/%{name}
 cp -a emacs %{buildroot}%{_datarootdir}/%{name}
+mkdir -p %{buildroot}%{_mandir}/man1/
+cp -a target/rpm/build/%{name}-*/man/*.1 %{buildroot}%{_mandir}/man1/
 
 %if %{with check}
 %check
@@ -50,6 +52,7 @@ cp -a emacs %{buildroot}%{_datarootdir}/%{name}
 %doc README.md
 %{_bindir}/rg-edit
 %{_datarootdir}/%{name}
+%{_mandir}/man1/rg-edit.1*
 
 %changelog
 %autochangelog
