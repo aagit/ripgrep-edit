@@ -44,33 +44,6 @@ This prepares the buffer for AI rewriting by selecting all content."
   :type 'boolean
   :group 'rg-edit)
 
-(defcustom rg-edit-workaround-gptel-rewrite-directives-hook t
-  "Enable workaround for gptel-rewrite-directives-hook regression
-
-Due to a regression introduced in gptel commit
-89d1b4768d9ab1d2624cb68d826f2134cb4c067e, the
-gptel-rewrite-directives-hook dynamic prompt appears functional (TAB
-after gptel-rewrite shows the expected prompt), but the generic prompt
-is silently used instead. This can be confirmed using Inspect (`I` key
-with gptel-expert-commands enabled). rg-edit relies on a precise
-prompt format, and this regression may falsely suggest that the LLM
-cannot handle the rg-edit structure when in reality it's a gptel bug.
-
-The issue originated in gptel v0.9.8.5 and persists. A tentative fix
-was submitted in pull request #1095.
-
-The rg-edit-workaround-gptel-rewrite-directives-hook setting disables
-gptel-rewrite-directives-hook and instead directly sets
-gptel--rewrite-directive in the local rg-edit buffer.
-
-Although gptel--rewrite-directive is documented as internal-only, it
-is functional, while the intended hook mechanism fails. Enabling this
-workaround ensures that rg-edit is processed with the correct system
-prompt, preserving functionality until the upstream issue is
-resolved."
-  :type 'boolean
-  :group 'rg-edit)
-
 (define-key global-map (kbd "C-c r") #'rg-edit-git)
 
 (defun rg-edit--check-server ()
@@ -172,7 +145,7 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
 		    :warning)))
 
 (defun rg-edit--gptel-rewrite ()
-  (when (and (not rg-edit-workaround-gptel-rewrite-directives-hook)
+  (when (and (boundp 'gptel-version)
              (string-match-p "\\.rg.edit\\'" (buffer-name)))
     rg-edit-gptel-system-message))
 (add-hook 'gptel-rewrite-directives-hook #'rg-edit--gptel-rewrite)
@@ -184,8 +157,11 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
           rg-edit-gptel-system-message)))
 
 (defun rg-edit--setup-gptel--rewrite-directive ()
-  (when rg-edit-workaround-gptel-rewrite-directives-hook
-    ;; workaround for gptel issue in pull request #1095
+  ;; workaround for gptel issue in pull request #1095
+  ;; fixed in 129032fca88f29c20343e973c98fa17db3000405 and
+  ;; the following commit f4344b8a7950fd6b969b32f84f0fe427a9bc925b
+  ;; introduced gptel-version
+  (unless (boundp 'gptel-version)
     (setq-local gptel--rewrite-directive
 		rg-edit-gptel-system-message)))
 
