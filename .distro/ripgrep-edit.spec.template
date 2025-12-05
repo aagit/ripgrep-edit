@@ -47,7 +47,6 @@ cp -a target/rpm/build/%{name}-*/man/*.1 %{buildroot}%{_mandir}/man1/
 %endif
 
 %files
-# FIXME: no license files detected
 %license LICENSE.dependencies
 %doc README.md
 %{_bindir}/rg-edit
