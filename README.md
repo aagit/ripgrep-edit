@@ -28,8 +28,8 @@ cargo build --release
 ### Fedora Copr
 A Fedora Copr package is available:
 ```bash
-# dnf copr enable vittyvk/ripgrep-edit
-# dnf install ripgrep-edit
+sudo dnf copr enable vittyvk/ripgrep-edit
+sudo dnf install ripgrep-edit
 ```
 
 The Copr is built for Fedora rawhide / 43 / 42.
