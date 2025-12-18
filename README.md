@@ -52,6 +52,7 @@ The Copr is built for Fedora rawhide / 43 / 42.
 - `--sort <SORT>`: Sort results by path, modified, accessed, or created time  
 - `--sortr <SORT>`: Sort results in reverse order by path, modified, accessed, or created time  
 - `--dump-on-error`: Dump processed tempfile to stderr on error
+- `--gbnf`: Generate dynamic GBNF grammar file  
 
 ## Examples
 
@@ -106,6 +107,28 @@ Do not ask clarification.
   (setq-default rg-edit-auto-mark-whole-buffer t)
   (setq-default rg-edit-executable "~/.../ripgrep-edit/target/release/rg-edit"))
 ```
+
+## GBNF Grammar Support
+
+ripgrep-edit leverages [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) to constrain LLM outputs when used with llama.cpp as backend. With the `--gbnf` option, a `*.gbnf` file with the grammar is created in the same directory as the temporary rg-edit buffer. The `rg-edit.el` plugin automatically detects it and injects its contents into the JSON request as the `grammar` field if the gptel backend is defined with the `gbnf` capability.
+
+```
+(setq-default
+ gptel-model `test
+ gptel-backend (gptel-make-openai "test"
+		 :stream t
+		 :protocol "http"
+		 :host "localhost:8811"
+		 :models '((test :capabilities (gbnf))))
+```
+
+The GBNF grammar is used primarily to prevent the model from unifying close snippets by replacing the separator with code from the middle.
+
+The GBNF grammar does not guarantee that the LLM output will pass all checks and be committed by rg-edit when the file is closed. It'd be a misfeature to correct an LLM output that has already gone astray. It is intended to provide self-restraint to the model when the edit session is otherwise going well.
+
+If the GBNF grammar is configured to be used during inference, a notice will appear about it in the `*rg-edit*` buffer.
+
+> ![ripgrep-edit `"usage limit with GBNF"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-usage_limit-GBNF.webm)
 
 ## Why Not wgrep?
 
