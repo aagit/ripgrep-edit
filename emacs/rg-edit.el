@@ -80,9 +80,9 @@ This prepares the buffer for AI rewriting by selecting all content."
 	   "-e" regexp
 	   "-E" "emacsclient"
 	   "--dump-on-error"
-	   dir-name
+	   (shell-quote-argument dir-name)
 	   (when extra-args
-	     (split-string extra-args)))))
+	     (split-string-shell-command extra-args)))))
 
 (defun rg-edit--get-path (path buffer-file)
   "Get the search path for rg-edit, using PATH or buffer file location."
