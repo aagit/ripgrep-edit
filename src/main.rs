@@ -2,6 +2,7 @@
 // Copyright (C) 2025  Red Hat, Inc.
 
 use anyhow::Result;
+use gbnf::generate_gbnf_file;
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Write};
@@ -9,6 +10,8 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 use std::time::SystemTime;
+
+mod gbnf;
 
 include!("args.rs");
 
@@ -320,6 +323,12 @@ fn main() -> Result<()> {
     // Set the temp_path modification time to 1 day before the current time
     let before_edit = SystemTime::now() - Duration::from_secs(24 * 60 * 60);
     file.set_modified(before_edit)?;
+
+    let _gbnf;
+    if args.gbnf {
+        let temp_path = std::path::Path::new(&temp_path);
+        _gbnf = generate_gbnf_file(&file_ranges, &args, temp_path.file_name().unwrap())?;
+    }
 
     // Open with editor
     let mut editor_cmd = Command::new("sh");

@@ -77,6 +77,10 @@ pub struct Args {
     /// Dump processed tempfile to stderr on error
     #[clap(long, default_value_t = false)]
     dump_on_error: bool,
+
+    /// Generate GBNF grammar file with context lines
+    #[clap(long)]
+    gbnf: bool,
 }
 
 #[derive(Clone, Debug, Default, clap::ValueEnum, PartialEq)]
