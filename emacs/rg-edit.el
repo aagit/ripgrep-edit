@@ -62,6 +62,9 @@ This prepares the buffer for AI rewriting by selecting all content."
   (with-current-buffer buffer
     (read-only-mode -1)
     (erase-buffer)
+    (when (and (fboundp 'gptel--model-capable-p)
+	       (gptel--model-capable-p 'gbnf))
+      (insert "GBNF Grammar Enabled\n"))
     (goto-char (point-min))))
 
 (defun rg-edit--run-command (regexp path extra-args)
@@ -80,6 +83,9 @@ This prepares the buffer for AI rewriting by selecting all content."
 	   "-e" regexp
 	   "-E" "emacsclient"
 	   "--dump-on-error"
+	   (if (and (fboundp 'gptel--model-capable-p)
+		      (gptel--model-capable-p 'gbnf))
+	       "--gbnf" "")
 	   (shell-quote-argument dir-name)
 	   (when extra-args
 	     (split-string-shell-command extra-args)))))
@@ -170,11 +176,26 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (when (fboundp 'gptel-abort)
     (gptel-abort (current-buffer))))
 
+(defun rg-edit--gbnf ()
+  "Read the .gbnf file and inject its contents into the JSON as the 'gbnf' field."
+  (when (and (fboundp 'gptel--model-capable-p)
+	     (gptel--model-capable-p 'gbnf))
+    (when-let* ((buffer-file (buffer-file-name))
+                (gbnf-path (car (file-expand-wildcards (concat buffer-file "*.gbnf"))))
+                (gbnf-content (when (file-exists-p gbnf-path)
+                                (with-temp-buffer
+                                  (insert-file-contents gbnf-path)
+                                  (buffer-string)))))
+      (when gbnf-content
+        (setq-local gptel--request-params
+                    (plist-put gptel--request-params :grammar gbnf-content))))))
+
 (defun rg-edit-mode ()
   (prog-mode)
   (rg-edit--setup-gptel-directives)
   (rg-edit--setup-gptel--rewrite-directive)
   (add-hook 'kill-buffer-hook #'rg-edit--kill-buffer-hook nil t)
+  (rg-edit--gbnf)
   (when rg-edit-auto-mark-whole-buffer
     (mark-whole-buffer)))
 ;;;###autoload
