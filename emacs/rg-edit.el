@@ -75,13 +75,13 @@ This prepares the buffer for AI rewriting by selecting all content."
   (let* ((path-dir (directory-file-name path))
 	 (default-directory (file-name-directory path-dir))
 	 (dir-name (file-name-nondirectory path-dir))
-	 (process-buffer (get-buffer-create "*rg-edit*" t)))
+	 (rg-buffer (get-buffer-create "*rg-edit*" t)))
     (save-some-buffers
      nil (lambda () (string-prefix-p (file-truename dir-name)
 				     (file-truename (buffer-file-name)))))
-    (rg-edit--cleanup-buffer process-buffer)
+    (rg-edit--cleanup-buffer rg-buffer)
     (apply #'start-process "rg-edit"
-	   process-buffer
+	   rg-buffer
 	   rg-edit-executable
 	   "-e" regexp
 	   "-E" "emacsclient"
@@ -196,6 +196,18 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
         (setq-local gptel--request-params
                     (plist-put gptel--request-params :grammar gbnf-content))))))
 
+(defun rg-edit--commit ()
+  "Commit changes made in the rg-edit buffer."
+  (interactive)
+  (save-buffer)
+  (kill-buffer))
+
+(defun rg-edit--abort ()
+  "Abort changes made in the rg-edit buffer."
+  (interactive)
+  (erase-buffer)
+  (rg-edit--commit))
+
 (defun rg-edit-mode ()
   (prog-mode)
   (rg-edit--setup-gptel-directives)
@@ -203,7 +215,12 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (add-hook 'kill-buffer-hook #'rg-edit--kill-buffer-hook nil t)
   (rg-edit--gbnf)
   (when rg-edit-auto-mark-whole-buffer
-    (mark-whole-buffer)))
+    (mark-whole-buffer))
+  (define-key (current-local-map) (kbd "C-c C-c") #'rg-edit--commit)
+  (define-key (current-local-map) (kbd "C-c C-k") #'rg-edit--abort)
+  (setq-local server-client-instructions nil)
+  (message "When done C-c C-c to commit, C-c C-k to abort or C-c # to manually close the session"))
+
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rg-edit\\'" . rg-edit-mode))
 
