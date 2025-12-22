@@ -81,6 +81,10 @@ pub struct Args {
     /// Generate GBNF grammar file with context lines
     #[clap(long)]
     gbnf: bool,
+
+    /// Generate GBNF grammar from extra control lines
+    #[clap(short = 'G', long, default_value_t = 10, value_parser = clap::value_parser!(u32).range(1..),)]
+    gbnf_control_lines: u32,
 }
 
 #[derive(Clone, Debug, Default, clap::ValueEnum, PartialEq)]

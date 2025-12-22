@@ -29,11 +29,25 @@ struct FileRange {
     start: usize,
     end: usize,
     lines: Vec<String>,
+    before_context: usize,
+    after_context: usize,
 }
 
 impl FileRange {
-    fn new(start: usize, end: usize, lines: Vec<String>) -> Self {
-        Self { start, end, lines }
+    fn new(
+        start: usize,
+        end: usize,
+        lines: Vec<String>,
+        before_context: usize,
+        after_context: usize,
+    ) -> Self {
+        Self {
+            start,
+            end,
+            lines,
+            before_context,
+            after_context,
+        }
     }
 }
 
@@ -58,6 +72,7 @@ impl FileRanges {
         };
         let mut current_file: Option<String> = None;
         let mut current_range: Option<FileRange> = None;
+        let mut context_is_before = true;
         let mut prev_line_empty = true;
 
         for line in lines {
@@ -85,6 +100,7 @@ impl FileRanges {
                     current_file = Some(line.to_string());
                 }
                 current_range = None;
+                context_is_before = true;
                 prev_line_empty = false;
                 continue;
             }
@@ -99,28 +115,48 @@ impl FileRanges {
                     file_ranges.add(current, range);
                 }
                 current_range = None;
+                context_is_before = true;
                 prev_line_empty = false;
                 continue;
             }
 
             // Check if line matches the format: linenumber:code
-            let mut parts = line.splitn(2, RG_SEPARATOR);
-            if let Some(line_num_str) = parts.next()
-                && let Ok(line_num) = line_num_str.parse::<usize>()
-            {
-                let line = parts.next().unwrap().to_string();
-                if line == context_separator {
-                    anyhow::bail!("context_separator found in file: {}", current_file.unwrap());
-                }
-                // Same file, extend range
-                if let Some(ref mut range) = current_range {
-                    range.end = line_num;
-                    range.lines.push(line);
+            let line_code = FileRanges::parse_line(line, RG_MATCH_SEPARATOR);
+            let ((line_num, line), is_context) = if line_code.is_err() {
+                (FileRanges::parse_line(line, RG_CONTEXT_SEPARATOR)?, true)
+            } else {
+                (line_code?, false)
+            };
+            if line == context_separator {
+                anyhow::bail!("context_separator found in file: {}", current_file.unwrap());
+            }
+            // Same file, extend range
+            if let Some(ref mut range) = current_range {
+                range.end = line_num;
+                range.lines.push(line);
+                if is_context {
+                    if context_is_before {
+                        range.before_context += 1;
+                    } else {
+                        range.after_context += 1;
+                    }
                 } else {
-                    current_range = Some(FileRange::new(line_num, line_num, vec![line]));
+                    context_is_before = false;
+                    range.after_context = 0;
                 }
             } else {
-                anyhow::bail!("Failed to parse line number from line: {}", line);
+                assert!(context_is_before);
+                let before_context = if is_context { 1 } else { 0 };
+                current_range = Some(FileRange::new(
+                    line_num,
+                    line_num,
+                    vec![line],
+                    before_context,
+                    0,
+                ));
+                if !is_context {
+                    context_is_before = false;
+                }
             }
             prev_line_empty = false;
         }
@@ -143,6 +179,21 @@ impl FileRanges {
 
     fn contains_key(&self, key: &str) -> bool {
         self.hash.contains_key(key)
+    }
+
+    fn parse_line(line: &str, separator: &str) -> Result<(usize, String)> {
+        let mut parts = line.splitn(2, separator);
+        if let Some(line_num_str) = parts.next()
+            && let Ok(line_num) = line_num_str.parse::<usize>()
+        {
+            let code = parts.next().unwrap().to_string();
+            Ok((line_num, code))
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed to parse line number from line: {}",
+                line
+            ))
+        }
     }
 
     fn add(&mut self, filename: &str, value: FileRange) {
@@ -220,7 +271,8 @@ impl FileRanges {
 
 type FileChanges = HashMap<String, Vec<Vec<String>>>;
 
-const RG_SEPARATOR: &str = ":";
+const RG_MATCH_SEPARATOR: &str = ":";
+const RG_CONTEXT_SEPARATOR: &str = ";";
 
 fn dedup_slashes(line: &str) -> String {
     let mut chars = line.chars().collect::<Vec<char>>();
@@ -236,25 +288,31 @@ fn main() -> Result<()> {
     let context_separator = &args.context_separator;
     let filename_prefix = &args.filename_prefix;
 
+    let mut before_context = args.context.max(args.before_context) as usize;
+    let mut after_context = args.context.max(args.after_context) as usize;
+    if args.gbnf {
+        before_context += args.gbnf_control_lines as usize;
+        after_context += args.gbnf_control_lines as usize;
+    }
+    let (before_context, after_context) = (before_context, after_context);
+
     let mut rg_cmd = Command::new("rg");
     rg_cmd
         .arg("-n")
         .arg("-H")
-        .arg(format!("-C{}", args.context))
+        .arg(format!("-A{}", after_context))
+        .arg(format!("-B{}", before_context))
         .arg("--heading")
         .arg("--color=never")
-        .arg(format!("--field-context-separator={}", RG_SEPARATOR))
-        .arg(format!("--field-match-separator={}", RG_SEPARATOR))
+        .arg(format!(
+            "--field-context-separator={}",
+            RG_CONTEXT_SEPARATOR
+        ))
+        .arg(format!("--field-match-separator={}", RG_MATCH_SEPARATOR))
         .arg(format!("--context-separator={context_separator}"))
         .arg("-e")
         .arg(&args.regexp);
 
-    if args.after_context > 0 {
-        rg_cmd.arg(format!("-A{}", args.after_context));
-    }
-    if args.before_context > 0 {
-        rg_cmd.arg(format!("-B{}", args.before_context));
-    }
     if args.smart_case {
         rg_cmd.arg("-S");
     }
@@ -310,25 +368,27 @@ fn main() -> Result<()> {
         eprintln!("No results found.");
         std::process::exit(0);
     }
+
+    let mut file_ranges = FileRanges::new(&rg_output, context_separator, filename_prefix)?;
+
     let mut temp_file = tempfile::Builder::new()
         .prefix("rg-edit-")
         .suffix(".rg-edit")
         .tempfile()?;
+
+    let _gbnf;
+    if args.gbnf {
+        _gbnf = generate_gbnf_file(&mut file_ranges, temp_file.path(), &args)?;
+    }
+    let file_ranges = file_ranges;
+
     let temp_path = temp_file.path().to_str().unwrap().to_string();
     let file = temp_file.as_file_mut();
-
-    let file_ranges = FileRanges::new(&rg_output, context_separator, filename_prefix)?;
     file_ranges.write(file)?;
 
     // Set the temp_path modification time to 1 day before the current time
     let before_edit = SystemTime::now() - Duration::from_secs(24 * 60 * 60);
     file.set_modified(before_edit)?;
-
-    let _gbnf;
-    if args.gbnf {
-        let temp_path = std::path::Path::new(&temp_path);
-        _gbnf = generate_gbnf_file(&file_ranges, &args, temp_path.file_name().unwrap())?;
-    }
 
     // Open with editor
     let mut editor_cmd = Command::new("sh");

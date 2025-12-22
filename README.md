@@ -53,6 +53,7 @@ The Copr is built for Fedora rawhide / 43 / 42.
 - `--sortr <SORT>`: Sort results in reverse order by path, modified, accessed, or created time  
 - `--dump-on-error`: Dump processed tempfile to stderr on error
 - `--gbnf`: Generate dynamic GBNF grammar file  
+- `--gbnf-control-lines`: Max number of GBNF control lines added as extra context  
 
 ## Examples
 
@@ -110,7 +111,7 @@ Do not ask clarification.
 
 ## GBNF Grammar Support
 
-ripgrep-edit leverages [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) to constrain LLM outputs when used with llama.cpp as backend. With the `--gbnf` option, a `*.gbnf` file with the grammar is created in the same directory as the temporary rg-edit buffer. The `rg-edit.el` plugin automatically detects it and injects its contents into the JSON request as the `grammar` field if the gptel backend is defined with the `gbnf` capability.
+ripgrep-edit integrates with [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) to constrain LLM outputs when using llama.cpp as the backend. When the `--gbnf` flag is used, a `*.gbnf` grammar file is generated in the same directory as the temporary rg-edit buffer. The `rg-edit.el` plugin automatically detects this file and injects its contents into the JSON request as the `grammar` field when the gptel backend supports the `gbnf` capability.
 
 ```
 (setq-default
@@ -122,11 +123,9 @@ ripgrep-edit leverages [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/
 		 :models '((test :capabilities (gbnf))))
 ```
 
-The GBNF grammar is used primarily to prevent the model from unifying close snippets by replacing the separator with code from the middle.
+The GBNF grammar enforces deterministic structure around the metadata markers of the rg-edit format. The LLM retains the ability to drop irrelevant files or reorder the file sequence, but the filename and its prefix are enforced to have no typos. Once inside the snippets, the GBNF grammar emits the "before context" control line (if available) and then grants the LLM free reign to modify snippet content until the LLM emits the "after context" control line or the separator. At that point, the GBNF grammar regains control, emits the separator (if not already emitted), and advances to the next snippet.
 
-The GBNF grammar does not guarantee that the LLM output will pass all checks and be committed by rg-edit when the file is closed. It'd be a misfeature to correct an LLM output that has already gone astray. It is intended to provide self-restraint to the model when the edit session is otherwise going well.
-
-If the GBNF grammar is configured to be used during inference, a notice will appear about it in the `*rg-edit*` buffer.
+When the GBNF grammar is enabled during inference, a notification appears in the `*rg-edit*` buffer.
 
 > ![ripgrep-edit `"usage limit with GBNF"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-usage_limit-GBNF.webm)
 

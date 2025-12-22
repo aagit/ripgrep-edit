@@ -12,6 +12,8 @@ keywords = ["ripgrep", "rg", "gptel", "gptel-rewrite", "llm"]
 tempfile = "3.23"
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
+textdistance = "1.1"
+either = "1.15"
 
 [[bin]]
 name = "rg-edit"
