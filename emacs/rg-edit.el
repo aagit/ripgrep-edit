@@ -44,6 +44,9 @@ This prepares the buffer for AI rewriting by selecting all content."
   :type 'boolean
   :group 'rg-edit)
 
+(defvar rg-edit--history-regexp nil "History for rg-edit regexp patterns.")
+(defvar rg-edit--history-extra-args nil "History for rg-edit extra-args.")
+
 (define-key global-map (kbd "C-c r") #'rg-edit-git)
 
 (defun rg-edit--check-server ()
@@ -53,7 +56,7 @@ This prepares the buffer for AI rewriting by selecting all content."
 
 (defun rg-edit--collect-extra-args (extra-args)
   "Collect extra arguments for rg-edit command."
-  (let ((extra-args (read-string "Extra args: " extra-args)))
+  (let ((extra-args (read-string "Extra args: " extra-args 'rg-edit--history-extra-args)))
     (unless (string-empty-p extra-args)
       extra-args)))
 
@@ -107,7 +110,7 @@ This prepares the buffer for AI rewriting by selecting all content."
 	      (file-name-directory buffer-file)))
 	default-directory)))
 
-(defun rg-edit--invoke (regexp path extra-args get-path-fn)
+(defun rg-edit--invoke (regexp path extra-args get-path-fn refine-path)
   "Invoke rg-edit with REGEXP, PATH, EXTRA-ARGS using GET-PATH-FN to determine the path."
   (rg-edit--check-server)
   (rg-edit--warn-if-auto-revert-disabled)
@@ -115,24 +118,27 @@ This prepares the buffer for AI rewriting by selecting all content."
 			   (if (use-region-p)
 			       (buffer-substring-no-properties (region-beginning) (region-end))
 			     (or (current-word) "")))))
-    (unless search-regexp
-      (user-error "No regexp provided or region/word to use"))
-    (let ((search-regexp (read-string "Regexp: " search-regexp))
+    (let ((search-regexp (read-string "Regexp: " search-regexp 'rg-edit--history-regexp))
 	  (buffer-file (buffer-file-name)))
+      (unless (and (stringp search-regexp)
+		   (> (length search-regexp) 0))
+	(user-error "No regexp provided"))
       (let ((search-path (funcall get-path-fn path buffer-file)))
-	(let ((search-path (expand-file-name (read-directory-name "Path: " search-path)))
+	(let ((search-path (expand-file-name (if (or refine-path (null buffer-file))
+						 (read-directory-name "Path: " search-path)
+					       search-path)))
 	      (extra-args (rg-edit--collect-extra-args extra-args)))
 	  (rg-edit--run-command search-regexp search-path extra-args))))))
 
 (defun rg-edit ()
   "Invoke rg-edit with the path in the current directory."
   (interactive)
-  (rg-edit--invoke nil nil nil #'rg-edit--get-path))
+  (rg-edit--invoke nil nil nil #'rg-edit--get-path t))
 
 (defun rg-edit-git-conflicts ()
   "Invoke rg-edit-git with regex and extra-args preset to edit git conflicts."
   (interactive)
-  (rg-edit--invoke "(?s)^<<<<<<<+ .*?^>>>>>>>+ " nil "-U" #'rg-edit--get-git-path))
+  (rg-edit--invoke "(?s)^<<<<<<<+ .*?^>>>>>>>+ " nil "-U" #'rg-edit--get-git-path nil))
 
 (defun rg-edit-git (&optional arg)
   "Invoke rg-edit-git with the search path set in the git root.
@@ -140,7 +146,7 @@ This prepares the buffer for AI rewriting by selecting all content."
 With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (interactive "p")
   (cond
-   ((= arg 1) (rg-edit--invoke nil nil nil #'rg-edit--get-git-path))
+   ((= arg 1) (rg-edit--invoke nil nil nil #'rg-edit--get-git-path nil))
    ((= arg 4) (rg-edit-git-conflicts))))
 
 (defun rg-edit--warn-if-auto-revert-disabled ()
