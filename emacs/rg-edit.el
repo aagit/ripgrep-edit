@@ -187,7 +187,7 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (when (and (fboundp 'gptel--model-capable-p)
 	     (gptel--model-capable-p 'gbnf))
     (when-let* ((buffer-file (buffer-file-name))
-                (gbnf-path (car (file-expand-wildcards (concat buffer-file "*.gbnf"))))
+                (gbnf-path (concat buffer-file ".gbnf"))
                 (gbnf-content (when (file-exists-p gbnf-path)
                                 (with-temp-buffer
                                   (insert-file-contents gbnf-path)

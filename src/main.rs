@@ -273,6 +273,7 @@ type FileChanges = HashMap<String, Vec<Vec<String>>>;
 
 const RG_MATCH_SEPARATOR: &str = ":";
 const RG_CONTEXT_SEPARATOR: &str = ";";
+const RG_EDIT_EXTENSION: &str = ".rg-edit";
 
 fn dedup_slashes(line: &str) -> String {
     let mut chars = line.chars().collect::<Vec<char>>();
@@ -369,21 +370,47 @@ fn main() -> Result<()> {
         std::process::exit(0);
     }
 
+    let temp_dir = tempfile::Builder::new().prefix("rg-edit-").tempdir()?;
+    let temp_dir_name = temp_dir
+        .path()
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    let temp_path = temp_dir
+        .path()
+        .join(format!("{}{}", temp_dir_name, RG_EDIT_EXTENSION));
+    let mut temp_file = File::create(&temp_path)?;
+
+    let gbnf = if args.gbnf {
+        let gbnf_temp_path = temp_dir
+            .path()
+            .join(format!("{}{}.gbnf", temp_dir_name, RG_EDIT_EXTENSION));
+        Some(File::create(&gbnf_temp_path)?)
+    } else {
+        None
+    };
+
+    // Setup signal handling to exit gracefully
+    let temp_dir_path = temp_dir.path().to_path_buf();
+    ctrlc::set_handler(move || {
+        eprintln!("Received interrupt signal, exiting...");
+        // Remove temporary file on signal
+        let _ = std::fs::remove_dir_all(&temp_dir_path);
+        std::process::exit(1);
+    })?;
+
     let mut file_ranges = FileRanges::new(&rg_output, context_separator, filename_prefix)?;
 
-    let mut temp_file = tempfile::Builder::new()
-        .prefix("rg-edit-")
-        .suffix(".rg-edit")
-        .tempfile()?;
-
     let _gbnf;
-    if args.gbnf {
-        _gbnf = generate_gbnf_file(&mut file_ranges, temp_file.path(), &args)?;
+    if let Some(gbnf) = gbnf {
+        let mut gbnf = gbnf;
+        generate_gbnf_file(&mut gbnf, &mut file_ranges, &args)?;
+        _gbnf = gbnf;
     }
     let file_ranges = file_ranges;
 
-    let temp_path = temp_file.path().to_str().unwrap().to_string();
-    let file = temp_file.as_file_mut();
+    let file = &mut temp_file;
     file_ranges.write(file)?;
 
     // Set the temp_path modification time to 1 day before the current time
@@ -394,7 +421,7 @@ fn main() -> Result<()> {
     let mut editor_cmd = Command::new("sh");
     editor_cmd
         .arg("-c")
-        .arg(format!("{} {}", args.editor, temp_path));
+        .arg(format!("{} {}", args.editor, temp_path.display()));
 
     let editor_status = editor_cmd.status()?;
     if !editor_status.success() {

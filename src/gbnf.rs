@@ -2,6 +2,7 @@
 // Copyright (C) 2025  Red Hat, Inc.
 
 use either::Either;
+use std::fs::File;
 use std::io::Write;
 use textdistance::Algorithm;
 
@@ -224,10 +225,10 @@ fn push_control_line(file_rule: &mut String, control_line: &str) {
 }
 
 pub fn generate_gbnf_file(
+    file: &mut File,
     file_ranges: &mut FileRanges,
-    output_path: &std::path::Path,
     args: &Args,
-) -> Result<Option<tempfile::NamedTempFile>, anyhow::Error> {
+) -> Result<(), anyhow::Error> {
     let mut file_rules = Vec::new();
     let before_context = args.context.max(args.before_context) as usize;
     let after_context = args.context.max(args.after_context) as usize;
@@ -320,26 +321,20 @@ pub fn generate_gbnf_file(
     );
     gbnf_content.push_str("\\n\"");
 
-    let mut file = tempfile::Builder::new()
-        .prefix(&format!("{}-", output_path.to_str().unwrap()))
-        .suffix(".gbnf")
-        .tempfile()?;
     writeln!(file, "{}", gbnf_content)?;
     file.flush()?;
 
-    Ok(Some(file))
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
 
     #[test]
     fn test_gbnf_generation() {
         // This is a simplified test - in practice, you'd need to mock FileRanges
-        let temp_file = NamedTempFile::new().unwrap();
-        let temp_path = temp_file.path();
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
 
         // Create a mock Args
         let args = Args {
@@ -351,7 +346,7 @@ mod tests {
         // This test would require more complex setup to test actual FileRanges
         // For now, we just ensure the function compiles and doesn't panic
         let mut file_ranges = FileRanges::new("", "", "").unwrap();
-        assert!(generate_gbnf_file(&mut file_ranges, temp_path, &args).is_ok());
+        assert!(generate_gbnf_file(temp_file.as_file_mut(), &mut file_ranges, &args).is_ok());
     }
 }
 

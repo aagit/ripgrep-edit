@@ -14,6 +14,7 @@ clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
 textdistance = "1.1"
 either = "1.15"
+ctrlc = { version = "3.5", features = ["termination"] }
 
 [[bin]]
 name = "rg-edit"
