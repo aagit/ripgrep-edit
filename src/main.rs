@@ -4,8 +4,9 @@
 use anyhow::Result;
 use gbnf::generate_gbnf_file;
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, File};
+use std::fs::{File, OpenOptions, Permissions, metadata};
 use std::io::{BufRead, BufReader, Write};
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -274,6 +275,7 @@ type FileChanges = HashMap<String, Vec<Vec<String>>>;
 const RG_MATCH_SEPARATOR: &str = ":";
 const RG_CONTEXT_SEPARATOR: &str = ";";
 const RG_EDIT_EXTENSION: &str = ".rg-edit";
+const GBNF_EXTENSION: &str = ".gbnf";
 
 fn dedup_slashes(line: &str) -> String {
     let mut chars = line.chars().collect::<Vec<char>>();
@@ -370,26 +372,12 @@ fn main() -> Result<()> {
         std::process::exit(0);
     }
 
-    let temp_dir = tempfile::Builder::new().prefix("rg-edit-").tempdir()?;
-    let temp_dir_name = temp_dir
-        .path()
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
-    let temp_path = temp_dir
-        .path()
-        .join(format!("{}{}", temp_dir_name, RG_EDIT_EXTENSION));
-    let mut temp_file = File::create(&temp_path)?;
+    let mut file_ranges = FileRanges::new(&rg_output, context_separator, filename_prefix)?;
 
-    let gbnf = if args.gbnf {
-        let gbnf_temp_path = temp_dir
-            .path()
-            .join(format!("{}{}.gbnf", temp_dir_name, RG_EDIT_EXTENSION));
-        Some(File::create(&gbnf_temp_path)?)
-    } else {
-        None
-    };
+    let temp_dir = tempfile::Builder::new()
+        .permissions(Permissions::from_mode(0o700))
+        .prefix("rg-edit-")
+        .tempdir()?;
 
     // Setup signal handling to exit gracefully
     let temp_dir_path = temp_dir.path().to_path_buf();
@@ -400,17 +388,32 @@ fn main() -> Result<()> {
         std::process::exit(1);
     })?;
 
-    let mut file_ranges = FileRanges::new(&rg_output, context_separator, filename_prefix)?;
+    let temp_dir_name = temp_dir
+        .path()
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+
+    let creat = &mut OpenOptions::new();
+    creat.read(true).write(true).create_new(true).mode(0o600);
 
     let _gbnf;
-    if let Some(gbnf) = gbnf {
-        let mut gbnf = gbnf;
+    if args.gbnf {
+        let gbnf_temp_path = temp_dir.path().join(format!(
+            "{}{}{}",
+            temp_dir_name, RG_EDIT_EXTENSION, GBNF_EXTENSION
+        ));
+        let mut gbnf = creat.open(&gbnf_temp_path)?;
         generate_gbnf_file(&mut gbnf, &mut file_ranges, &args)?;
         _gbnf = gbnf;
     }
     let file_ranges = file_ranges;
 
-    let file = &mut temp_file;
+    let temp_path = temp_dir
+        .path()
+        .join(format!("{}{}", temp_dir_name, RG_EDIT_EXTENSION));
+    let file = &mut creat.open(&temp_path)?;
     file_ranges.write(file)?;
 
     // Set the temp_path modification time to 1 day before the current time
@@ -429,7 +432,7 @@ fn main() -> Result<()> {
     }
 
     // Get modification time after editor
-    let after_edit = fs::metadata(&temp_path)?.modified()?;
+    let after_edit = metadata(&temp_path)?.modified()?;
 
     // Check if the file was modified
     if after_edit <= before_edit {

@@ -330,11 +330,21 @@ pub fn generate_gbnf_file(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::Permissions;
+    use std::os::unix::fs::PermissionsExt;
 
     #[test]
     fn test_gbnf_generation() {
-        // This is a simplified test - in practice, you'd need to mock FileRanges
-        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        let mut temp_file = tempfile::Builder::new()
+            .permissions(Permissions::from_mode(0o700))
+            .prefix("rg-edit-")
+            .suffix(&format!(
+                "{}{}",
+                crate::RG_EDIT_EXTENSION,
+                crate::GBNF_EXTENSION
+            ))
+            .tempfile()
+            .unwrap();
 
         // Create a mock Args
         let args = Args {
