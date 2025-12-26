@@ -60,15 +60,26 @@ This prepares the buffer for AI rewriting by selecting all content."
     (unless (string-empty-p extra-args)
       extra-args)))
 
-(defun rg-edit--cleanup-buffer (buffer)
-  "Clean up the *rg-edit* buffer before running rg-edit."
-  (with-current-buffer buffer
-    (read-only-mode -1)
-    (erase-buffer)
-    (when (and (fboundp 'gptel--model-capable-p)
-	       (gptel--model-capable-p 'gbnf))
-      (insert "GBNF Grammar Enabled\n"))
-    (goto-char (point-min))))
+(defun rg-edit--terminate ()
+  "Terminate all outstanding rg-edit processes by closing the *rg-edit* buffer."
+  (interactive)
+  (kill-buffer))
+
+(defun rg-edit--setup-buffer (rg-buffer)
+  "Setup the *rg-edit* buffer before running rg-edit."
+  (switch-to-buffer rg-buffer)
+  (read-only-mode -1)
+  (erase-buffer)
+  (goto-char (point-min))
+  (unless (current-local-map)
+    (let ((map (make-sparse-keymap)))
+      (set-keymap-parent map (current-local-map))
+      (define-key map (kbd "C-c C-k") #'rg-edit--terminate)
+      (use-local-map map)))
+  (insert "C-c C-k on this buffer will terminate any outstanding rg-edit\n")
+  (when (and (fboundp 'gptel--model-capable-p)
+	     (gptel--model-capable-p 'gbnf))
+    (insert "GBNF Grammar Enabled\n")))
 
 (defun rg-edit--run-command (regexp path extra-args)
   "Run rg-edit with REGEXP, PATH, and EXTRA-ARGS."
@@ -79,7 +90,7 @@ This prepares the buffer for AI rewriting by selecting all content."
     (save-some-buffers
      nil (lambda () (string-prefix-p (file-truename dir-name)
 				     (file-truename (buffer-file-name)))))
-    (rg-edit--cleanup-buffer rg-buffer)
+    (rg-edit--setup-buffer rg-buffer)
     (apply #'start-process "rg-edit"
 	   rg-buffer
 	   rg-edit-executable
@@ -209,6 +220,9 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (rg-edit--commit))
 
 (defun rg-edit-mode ()
+  (let ((rg-buffer (get-buffer "*rg-edit*")))
+    (with-current-buffer rg-buffer
+      (bury-buffer)))
   (prog-mode)
   (rg-edit--setup-gptel-directives)
   (rg-edit--setup-gptel--rewrite-directive)
@@ -219,7 +233,7 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (define-key (current-local-map) (kbd "C-c C-c") #'rg-edit--commit)
   (define-key (current-local-map) (kbd "C-c C-k") #'rg-edit--abort)
   (setq-local server-client-instructions nil)
-  (message "When done C-c C-c to commit, C-c C-k to abort or C-c # to manually close the session"))
+  (message "When done C-c C-c to commit, C-c C-k to abort or C-x # to manually close the session"))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rg-edit\\'" . rg-edit-mode))
