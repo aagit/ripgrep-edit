@@ -13,6 +13,7 @@ ripgrep-edit enables *razor coding* by allowing LLM workflows to operate with ra
 ## Demo
 
 > ![ripgrep-edit `"kernel arg_lock from spinlock to mutex"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-kernel-arg_lock.webm)
+> ![ripgrep-edit `"quote_char_in_Range"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-quote_char_in_range.webm)
 > ![ripgrep-edit `"deduplicate the dedup_by"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-dedup_slashes.webm)
 
 ## Build
@@ -127,6 +128,7 @@ The GBNF grammar enforces deterministic structure around the metadata markers of
 
 When the GBNF grammar is enabled during inference, a notification appears in the `*rg-edit*` buffer.
 
+> ![ripgrep-edit `"max_line_1 with GBNF"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-max_line_1-GBNF.webm)
 > ![ripgrep-edit `"usage limit with GBNF"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-usage_limit-GBNF.webm)
 
 ## Why Not wgrep?
