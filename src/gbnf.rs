@@ -9,7 +9,7 @@ use textdistance::Algorithm;
 use crate::Args;
 use crate::FileRanges;
 
-fn quote_char(c: char, in_range: bool) -> String {
+fn __quote_char(c: char, in_range: bool) -> String {
     match c {
         '\t' => "\\t".to_string(),
         '\r' => "\\r".to_string(),
@@ -18,6 +18,14 @@ fn quote_char(c: char, in_range: bool) -> String {
         '[' | ']' if in_range => format!("\\{}", c),
         _ => c.to_string(),
     }
+}
+
+fn quote_char_in_range(c: char) -> String {
+    __quote_char(c, true)
+}
+
+fn quote_char(c: char) -> String {
+    __quote_char(c, false)
 }
 
 fn negative(control_line: Option<&String>, separator: &str) -> String {
@@ -42,12 +50,12 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
         for (j, (c, s)) in chars.iter().zip(chars_sep.iter()).enumerate().take(i + 1) {
             if i == j {
                 let c = if *c != '\n' {
-                    &quote_char(*c, true)
+                    &quote_char_in_range(*c)
                 } else {
                     ""
                 };
                 let s = if *s != '\n' {
-                    &quote_char(*s, true)
+                    &quote_char_in_range(*s)
                 } else {
                     ""
                 };
@@ -70,8 +78,8 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                     rule.push_str(&format!("[^\\n{}{}]", c, s));
                 }
             } else {
-                positive.push_str(&quote_char(*c, false));
-                positive_sep.push_str(&quote_char(*s, false));
+                positive.push_str(&quote_char(*c));
+                positive_sep.push_str(&quote_char(*s));
             }
         }
         if chars.len() == chars_sep.len() {
@@ -89,7 +97,7 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
             }
             if i == j {
                 let c = if *c != '\n' {
-                    &quote_char(*c, true)
+                    &quote_char_in_range(*c)
                 } else {
                     ""
                 };
@@ -100,7 +108,7 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                 };
                 rule.push_str(&format!("{}[^\\n{}]", positive, c));
             } else {
-                positive.push_str(&quote_char(*c, false));
+                positive.push_str(&quote_char(*c));
             }
         }
         if i < nr - 1 {
@@ -223,7 +231,7 @@ fn push_control_line(file_rule: &mut String, control_line: &str) {
     file_rule.push_str(
         &control_line
             .chars()
-            .map(|c| quote_char(c, false))
+            .map(|c| quote_char(c))
             .collect::<String>(),
     );
     file_rule.push_str("\" [\\n] \n");
@@ -311,7 +319,7 @@ pub fn generate_gbnf_file(
         &args
             .filename_prefix
             .chars()
-            .map(|c| quote_char(c, false))
+            .map(|c| quote_char(c))
             .collect::<String>(),
     );
     gbnf_content.push_str("\"\n");
@@ -321,7 +329,7 @@ pub fn generate_gbnf_file(
         &args
             .context_separator
             .chars()
-            .map(|c| quote_char(c, false))
+            .map(|c| quote_char(c))
             .collect::<String>(),
     );
     gbnf_content.push_str("\\n\"");
