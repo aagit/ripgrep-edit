@@ -138,10 +138,13 @@ pub fn find_distant_control_line<'a>(
     let mut max_dist = 0.0;
     let mut max_line: Option<&String> = None;
     let mut seen = std::collections::HashSet::new();
-    let unique_control_lines_iter = if !after {
-        Either::Left(unique_control_lines.iter().rev())
+    let (unique_control_lines_iter, boundary_line) = if !after {
+        (
+            Either::Left(unique_control_lines.iter().rev()),
+            lines.first(),
+        )
     } else {
-        Either::Right(unique_control_lines.iter())
+        (Either::Right(unique_control_lines.iter()), lines.last())
     };
     for control_line in unique_control_lines_iter {
         let mut control_max_dist = 0.0;
@@ -162,7 +165,9 @@ pub fn find_distant_control_line<'a>(
                 control_max_dist = dist;
             }
         }
-        if control_max_dist > max_dist || max_line.is_none() {
+        if (control_max_dist > max_dist && control_line != &boundary_line.unwrap())
+            || max_line.is_none()
+        {
             max_dist = control_max_dist;
             max_line = Some(control_line);
         }
