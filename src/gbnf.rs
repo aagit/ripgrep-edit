@@ -145,7 +145,7 @@ pub fn find_distant_control_line<'a>(
     let damerau_levenshtein = textdistance::DamerauLevenshtein::default();
     let mut max_dist = 0.0;
     let mut max_line: Option<&String> = None;
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = std::collections::HashMap::new();
     let (unique_control_lines_iter, boundary_line) = if !after {
         (
             Either::Left(unique_control_lines.iter().rev()),
@@ -155,7 +155,7 @@ pub fn find_distant_control_line<'a>(
         (Either::Right(unique_control_lines.iter()), lines.last())
     };
     for control_line in unique_control_lines_iter {
-        let mut control_max_dist = 0.0;
+        let mut control_min_dist: Option<f64> = None;
         for line in &different_control_lines {
             if **control_line == *line {
                 continue;
@@ -165,18 +165,24 @@ pub fn find_distant_control_line<'a>(
             } else {
                 (line, *control_line)
             };
-            if !seen.insert(key) {
-                continue;
-            }
-            let dist = damerau_levenshtein.for_str(control_line, line).nval();
-            if dist > control_max_dist {
-                control_max_dist = dist;
+            let dist = seen.get(&key);
+            let dist = match dist {
+                Some(dist) => *dist,
+                None => {
+                    let dist = damerau_levenshtein.for_str(control_line, line).nval();
+                    seen.insert(key, dist);
+                    dist
+                }
+            };
+            if control_min_dist.is_none_or(|d| dist < d) {
+                control_min_dist = Some(dist);
             }
         }
-        if (control_max_dist > max_dist && control_line != &boundary_line.unwrap())
+        if (control_min_dist.is_some_and(|d| d > max_dist)
+            && control_line != &boundary_line.unwrap())
             || max_line.is_none()
         {
-            max_dist = control_max_dist;
+            max_dist = control_min_dist.unwrap_or(0.0);
             max_line = Some(control_line);
         }
     }
