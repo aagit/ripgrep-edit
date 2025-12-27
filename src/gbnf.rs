@@ -228,12 +228,7 @@ pub fn find_control_line<'a>(
 
 fn push_control_line(file_rule: &mut String, control_line: &str) {
     file_rule.push_str(" \"");
-    file_rule.push_str(
-        &control_line
-            .chars()
-            .map(|c| quote_char(c))
-            .collect::<String>(),
-    );
+    file_rule.push_str(&control_line.chars().map(quote_char).collect::<String>());
     file_rule.push_str("\" [\\n] \n");
 }
 
@@ -319,7 +314,7 @@ pub fn generate_gbnf_file(
         &args
             .filename_prefix
             .chars()
-            .map(|c| quote_char(c))
+            .map(quote_char)
             .collect::<String>(),
     );
     gbnf_content.push_str("\"\n");
@@ -329,7 +324,7 @@ pub fn generate_gbnf_file(
         &args
             .context_separator
             .chars()
-            .map(|c| quote_char(c))
+            .map(quote_char)
             .collect::<String>(),
     );
     gbnf_content.push_str("\\n\"");
