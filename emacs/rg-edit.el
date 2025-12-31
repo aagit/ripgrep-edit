@@ -76,10 +76,12 @@ This prepares the buffer for AI rewriting by selecting all content."
       (set-keymap-parent map (current-local-map))
       (define-key map (kbd "C-c C-k") #'rg-edit--terminate)
       (use-local-map map)))
-  (insert "C-c C-k on this buffer will terminate any outstanding rg-edit\n")
+  (insert "C-c C-k on this buffer will close it and terminate any outstanding rg-edit session\n\n")
   (when (and (fboundp 'gptel--model-capable-p)
 	     (gptel--model-capable-p 'gbnf))
-    (insert "GBNF Grammar Enabled\n")))
+    (insert "GBNF Grammar Enabled\n\n"))
+  (with-current-buffer rg-buffer
+    (visual-line-mode)))
 
 (defun rg-edit--run-command (regexp path extra-args)
   "Run rg-edit with REGEXP, PATH, and EXTRA-ARGS."
