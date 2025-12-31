@@ -70,6 +70,10 @@ pub struct Args {
     #[clap(long, default_value = "none", value_enum)]
     sortr: SortBy,
 
+    /// Follow symlinks
+    #[clap(short = 'L', long = "follow")]
+    follow: bool,
+
     /// Paths to search in
     #[clap(num_args(0..))]
     paths: Vec<String>,

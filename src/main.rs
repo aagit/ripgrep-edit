@@ -351,6 +351,9 @@ fn main() -> Result<()> {
             SortBy::Created => "created",
         });
     }
+    if args.follow {
+        rg_cmd.arg("--follow");
+    }
     for path in &args.paths {
         rg_cmd.arg(path);
     }

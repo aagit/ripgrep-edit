@@ -52,6 +52,7 @@ The Copr is built for Fedora rawhide / 43 / 42.
 - `--multiline-dotall`: Enable dotall mode for multiline matching  
 - `--sort <SORT>`: Sort results by path, modified, accessed, or created time  
 - `--sortr <SORT>`: Sort results in reverse order by path, modified, accessed, or created time  
+- `--follow`: Follow symlinks  
 - `--dump-on-error`: Dump processed tempfile to stderr on error
 - `--gbnf`: Generate dynamic GBNF grammar file  
 - `--gbnf-control-lines`: Max number of GBNF control lines added as extra context  
