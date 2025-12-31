@@ -6,7 +6,7 @@ use gbnf::generate_gbnf_file;
 use std::collections::{HashMap, HashSet};
 use std::fs::{File, OpenOptions, Permissions, metadata};
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -174,6 +174,7 @@ impl FileRanges {
             }
         }
 
+        file_ranges.single_inode_dev()?;
         file_ranges.validate()?;
         Ok(file_ranges)
     }
@@ -211,6 +212,37 @@ impl FileRanges {
         self.filenames
             .iter()
             .filter_map(move |filename| self.hash.get(filename).map(|ranges| (filename, ranges)))
+    }
+
+    fn single_inode_dev(&mut self) -> Result<()> {
+        // Map from (device_id, inode) to full_path
+        let mut inode_set: HashSet<(u64, u64)> = HashSet::new();
+        let mut to_remove: HashSet<String> = HashSet::new();
+
+        // build the inode set
+        for filename in &self.filenames {
+            let canonical_path = std::fs::canonicalize(Path::new(filename))
+                .map_err(|e| anyhow::anyhow!("Failed to canonicalize path {}: {}", filename, e))?;
+            let metadata = std::fs::metadata(&canonical_path)
+                .map_err(|e| anyhow::anyhow!("Failed to get metadata for {}: {}", filename, e))?;
+            let device_id = metadata.dev();
+            let inode = metadata.ino();
+            let key = (device_id, inode);
+
+            if inode_set.contains(&key) {
+                to_remove.insert(filename.to_string());
+            } else {
+                inode_set.insert(key);
+            }
+        }
+
+        // Remove files that share inodes
+        self.filenames
+            .retain(|filename| !to_remove.contains(filename));
+        self.hash
+            .retain(|filename, _ranges| !to_remove.contains(filename));
+
+        Ok(())
     }
 
     fn validate(&self) -> Result<()> {
