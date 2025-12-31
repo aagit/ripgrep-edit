@@ -14,6 +14,7 @@ ripgrep-edit enables *razor coding* by allowing LLM workflows to operate with ra
 
 > ![ripgrep-edit `"kernel arg_lock from spinlock to mutex"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-kernel-arg_lock.webm)
 > ![ripgrep-edit `"quote_char_in_Range"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-quote_char_in_range.webm)
+> ![ripgrep-edit `"follow symlinks"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-follow_symlinks.webm)
 > ![ripgrep-edit `"deduplicate the dedup_by"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-dedup_slashes.webm)
 
 ## Build
