@@ -30,6 +30,7 @@ fn quote_char(c: char) -> String {
 
 fn negative(control_line: Option<&String>, separator: &str) -> String {
     let mut rule = String::new();
+    let mut rule_terminated = String::new();
 
     let mut chars_sep = separator.chars().collect::<Vec<char>>();
     chars_sep.push('\n');
@@ -43,7 +44,7 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
     };
 
     let nr = chars.len().max(chars_sep.len());
-    rule.push_str("( ( (\n ");
+    rule.push_str("( ( (\n");
     for i in 0..nr {
         let mut positive = String::new();
         let mut positive_sep = String::new();
@@ -62,20 +63,26 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                 let positive = if positive.is_empty() {
                     ""
                 } else {
-                    &format!("\"{}\" ", positive)
+                    &format!("\"{}\"", positive)
                 };
                 let positive_sep = if positive_sep.is_empty() {
                     ""
                 } else {
-                    &format!("\"{}\" ", positive_sep)
+                    &format!("\"{}\"", positive_sep)
                 };
                 if i > 0 {
                     rule.push_str(&format!(
-                        "{}[^\\n{}] |\n {}[^\\n{}]",
+                        " | {} [^\\n{}]\n | {} [^\\n{}]\n",
                         positive, c, positive_sep, s
                     ));
+                    if !c.is_empty() {
+                        rule_terminated.push_str(&format!(" | {}\n", positive));
+                    }
+                    if !s.is_empty() {
+                        rule_terminated.push_str(&format!(" | {}\n", positive_sep));
+                    }
                 } else {
-                    rule.push_str(&format!("[^\\n{}{}]", c, s));
+                    rule.push_str(&format!(" [^\\n{}{}]\n", c, s));
                 }
             } else {
                 positive.push_str(&quote_char(*c));
@@ -92,6 +99,7 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
         };
 
         for (j, c) in chars.iter().enumerate().take(i + 1) {
+            assert!(short_len > 0);
             if j < short_len {
                 continue;
             }
@@ -104,18 +112,20 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                 let positive = if positive.is_empty() {
                     ""
                 } else {
-                    &format!("\"{}\" ", positive)
+                    &format!("\"{}\"", positive)
                 };
-                rule.push_str(&format!("{}[^\\n{}]", positive, c));
+                rule.push_str(&format!(" | {} [^\\n{}]\n", positive, c));
+                if !c.is_empty() {
+                    rule_terminated.push_str(&format!(" | {}\n", positive));
+                }
             } else {
                 positive.push_str(&quote_char(*c));
             }
         }
-        if i < nr - 1 {
-            rule.push_str(" |\n ");
-        }
     }
-    rule.push_str(") [^\\n]* )? [\\n] )*\n");
+    rule.push_str(") [^\\n]*\n");
+    rule.push_str(&rule_terminated);
+    rule.push_str(")? [\\n] )*\n");
     rule
 }
 
