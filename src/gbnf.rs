@@ -72,7 +72,7 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                 };
                 if i > 0 {
                     rule.push_str(&format!(
-                        " | {} [^\\n{}]\n | {} [^\\n{}]\n",
+                        "{} [^\\n{}] |\n {} [^\\n{}]",
                         positive, c, positive_sep, s
                     ));
                     if !c.is_empty() {
@@ -82,7 +82,7 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                         rule_terminated.push_str(&format!(" | {}\n", positive_sep));
                     }
                 } else {
-                    rule.push_str(&format!(" [^\\n{}{}]\n", c, s));
+                    rule.push_str(&format!(" [^\\n{}{}]", c, s));
                 }
             } else {
                 positive.push_str(&quote_char(*c));
@@ -99,7 +99,6 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
         };
 
         for (j, c) in chars.iter().enumerate().take(i + 1) {
-            assert!(short_len > 0);
             if j < short_len {
                 continue;
             }
@@ -114,13 +113,16 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                 } else {
                     &format!("\"{}\"", positive)
                 };
-                rule.push_str(&format!(" | {} [^\\n{}]\n", positive, c));
-                if !c.is_empty() {
+                rule.push_str(&format!("{} [^\\n{}]", positive, c));
+                if !c.is_empty() && !positive.is_empty() {
                     rule_terminated.push_str(&format!(" | {}\n", positive));
                 }
             } else {
                 positive.push_str(&quote_char(*c));
             }
+        }
+        if i < nr - 1 {
+            rule.push_str(" |\n ");
         }
     }
     rule.push_str(") [^\\n]*\n");
