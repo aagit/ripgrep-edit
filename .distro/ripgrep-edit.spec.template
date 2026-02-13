@@ -17,10 +17,18 @@ Source:         https://gitlab.com/aarcange/ripgrep-edit/-/archive/%version/%nam
 BuildRequires:  cargo-rpm-macros >= 26 ripgrep
 Requires: ripgrep
 
-%global _description %{expand:
-Edit ripgrep search results across multiple files.}
+%description
+Edit ripgrep search results across multiple files.
 
-%description %{_description}
+%package        emacs
+BuildRequires:  emacs-nw
+BuildArch:      noarch
+Requires:       emacs-filesystem >= %{_emacs_version}
+Requires:       %{name} = %{version}-%{release}
+Summary:        Use Emacs to edit ripgrep search results across multiple files
+
+%description emacs
+Use Emacs to edit ripgrep search results across multiple files.
 
 %prep
 %autosetup -n ripgrep-edit-%{version} -p1
@@ -36,10 +44,8 @@ Edit ripgrep search results across multiple files.}
 
 %install
 %cargo_install
-mkdir -p %{buildroot}%{_datarootdir}/%{name}
-cp -a emacs %{buildroot}%{_datarootdir}/%{name}
-mkdir -p %{buildroot}%{_mandir}/man1/
-cp -a target/rpm/build/%{name}-*/man/*.1 %{buildroot}%{_mandir}/man1/
+install -m0644 -D emacs/rg-edit.el %{buildroot}%{_emacs_sitestartdir}/rg-edit-init.el
+install -m0644 -D -t %{buildroot}%{_mandir}/man1/ target/rpm/build/%{name}-*/man/*.1
 
 %if %{with check}
 %check
@@ -50,8 +56,10 @@ cp -a target/rpm/build/%{name}-*/man/*.1 %{buildroot}%{_mandir}/man1/
 %license LICENSE.dependencies
 %doc README.md
 %{_bindir}/rg-edit
-%{_datarootdir}/%{name}
 %{_mandir}/man1/rg-edit.1*
+
+%files emacs
+%{_emacs_sitestartdir}/rg-edit-init.el
 
 %changelog
 %autochangelog
