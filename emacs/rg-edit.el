@@ -151,7 +151,7 @@ This prepares the buffer for AI rewriting by selecting all content."
 (defun rg-edit-git-conflicts ()
   "Invoke rg-edit-git with regex and extra-args preset to edit git conflicts."
   (interactive)
-  (rg-edit--invoke "(?s)^<<<<<<<+ .*?^>>>>>>>+ " nil "-U" #'rg-edit--get-git-path nil))
+  (rg-edit--invoke "(?s)^<<<<<<<+ .*?^\\|\\|\\|\\|\\|\\|\\|+ .*?^>>>>>>>+ " nil "-U -C10" #'rg-edit--get-git-path nil))
 
 (defun rg-edit-git (&optional arg)
   "Invoke rg-edit-git with the search path set in the git root.

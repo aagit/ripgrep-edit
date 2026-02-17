@@ -64,7 +64,8 @@ The Copr is built for Fedora rawhide / 43 / 42.
 rg-edit [OPTIONS] --regexp <REGEXP> --editor <EDITOR> [PATHS...]
 rg-edit -e "function\s*\(" -E vim src/
 rg-edit -e "function\s*\(" -E "emacsclient" -C 8 src/
-rg-edit -E vim -U -e '(?s)^<<<<<<<+ .*?^>>>>>>>+ ' # resolve git conflicts
+rg-edit -E vim -C10 -U -e '(?s)^<<<<<<<+ .*?^\|\|\|\|\|\|\|+ .*?^>>>>>>>+ ' # resolve git conflicts
+rg-edit -E emacsclient -C10 -U -e '(?s)^<<<<<<<+ .*?^\|\|\|\|\|\|\|+ .*?^>>>>>>>+ '
 ```
 
 ## Why It Was Built
