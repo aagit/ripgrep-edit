@@ -89,9 +89,6 @@ fn negative(control_line: Option<&String>, separator: &str) -> String {
                 positive_sep.push_str(&quote_char(*s));
             }
         }
-        if chars.len() == chars_sep.len() {
-            continue;
-        }
         let (chars, mut positive, short_len) = if chars.len() > chars_sep.len() {
             (&chars, positive, chars_sep.len())
         } else {
