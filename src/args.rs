@@ -74,6 +74,10 @@ pub struct Args {
     #[clap(short = 'L', long = "follow")]
     follow: bool,
 
+    /// Number of threads to use
+    #[clap(short = 'j', long = "threads", default_value_t = 0, value_parser = clap::value_parser!(u32).range(0..))]
+    threads: u32,
+
     /// Paths to search in
     #[clap(num_args(0..))]
     paths: Vec<String>,

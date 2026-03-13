@@ -473,6 +473,10 @@ fn main() -> Result<()> {
     if args.follow {
         rg_cmd.arg("--follow");
     }
+    if args.threads > 0 {
+        rg_cmd.arg("--threads");
+        rg_cmd.arg(args.threads.to_string());
+    }
     for path in &args.paths {
         rg_cmd.arg(path);
     }

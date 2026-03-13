@@ -54,6 +54,7 @@ The Copr is built for Fedora rawhide / 43 / 42.
 - `--sort <SORT>`: Sort results by path, modified, accessed, or created time  
 - `--sortr <SORT>`: Sort results in reverse order by path, modified, accessed, or created time  
 - `--follow`: Follow symlinks  
+- `-j, --threads <NUM>`: Number of threads to use  
 - `--dump-on-error`: Dump processed tempfile to stderr on error
 - `--output-size-limit <SIZE>`: Limit total ripgrep output size (e.g., 1024, 1k, 1m, 1g). If the limit is exceeded, the tool exits with code 3.
 - `--gbnf`: Generate dynamic GBNF grammar file  
