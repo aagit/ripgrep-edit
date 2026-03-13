@@ -82,6 +82,11 @@ pub struct Args {
     #[clap(long, default_value_t = false)]
     dump_on_error: bool,
 
+    /// Limit the total size of ripgrep output in bytes (e.g., 1024,
+    /// 1k, 1m, 1g), if the limit is exceeded exit with code 3
+    #[clap(long)]
+    output_size_limit: Option<String>,
+
     /// Generate GBNF grammar file with context lines
     #[clap(long)]
     gbnf: bool,

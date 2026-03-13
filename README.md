@@ -55,6 +55,7 @@ The Copr is built for Fedora rawhide / 43 / 42.
 - `--sortr <SORT>`: Sort results in reverse order by path, modified, accessed, or created time  
 - `--follow`: Follow symlinks  
 - `--dump-on-error`: Dump processed tempfile to stderr on error
+- `--output-size-limit <SIZE>`: Limit total ripgrep output size (e.g., 1024, 1k, 1m, 1g). If the limit is exceeded, the tool exits with code 3.
 - `--gbnf`: Generate dynamic GBNF grammar file  
 - `--gbnf-control-lines`: Max number of GBNF control lines added as extra context  
 
@@ -66,6 +67,7 @@ rg-edit -e "function\s*\(" -E vim src/
 rg-edit -e "function\s*\(" -E "emacsclient" -C 8 src/
 rg-edit -E vim -C10 -U -e '(?s)^<<<<<<<+ .*?^\|\|\|\|\|\|\|+ .*?^>>>>>>>+ ' # resolve git conflicts
 rg-edit -E emacsclient -C10 -U -e '(?s)^<<<<<<<+ .*?^\|\|\|\|\|\|\|+ .*?^>>>>>>>+ '
+rg-edit -e '.*' -E vim src/ --output-size-limit 1m # fail if output larger than 1 megabyte (exits with code 3)
 ```
 
 ## Why It Was Built

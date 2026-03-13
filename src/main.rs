@@ -315,6 +315,93 @@ fn dedup_slashes(line: &str) -> String {
     chars.iter().collect::<String>()
 }
 
+fn parse_size_limit(size_str: &str) -> Result<u64> {
+    let size_str = size_str.trim();
+    let mut multiplier = 1u64;
+    let mut num_str = size_str;
+
+    if let Some(suffix) = size_str.chars().next_back() {
+        match suffix {
+            'k' | 'K' => {
+                multiplier = 1024;
+                num_str = &size_str[..size_str.len() - 1];
+            }
+            'm' | 'M' => {
+                multiplier = 1024 * 1024;
+                num_str = &size_str[..size_str.len() - 1];
+            }
+            'g' | 'G' => {
+                multiplier = 1024 * 1024 * 1024;
+                num_str = &size_str[..size_str.len() - 1];
+            }
+            _ => {} // No suffix, treat as bytes
+        }
+    }
+
+    num_str
+        .parse::<u64>()
+        .map(|n| n * multiplier)
+        .map_err(|_| anyhow::anyhow!("Invalid size limit format: {}", size_str))
+}
+
+fn run_rg(rg_cmd: &mut Command, size_limit: Option<u64>) -> Result<String> {
+    let mut child = rg_cmd
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                anyhow::anyhow!("Error: rg is not installed.")
+            } else {
+                anyhow::anyhow!("Failed to execute rg: {e}")
+            }
+        })?;
+    let mut stdout = child.stdout.take().unwrap();
+    let mut stderr = child.stderr.take().unwrap();
+
+    let mut buf = [0u8; 65536];
+    let mut total_bytes = 0u64;
+    let mut rg_output = String::new();
+
+    loop {
+        match std::io::Read::read(&mut stdout, &mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                if let Some(limit) = size_limit {
+                    total_bytes += n as u64;
+                    if total_bytes > limit {
+                        child.kill()?;
+                        let _ = child.wait();
+                        eprintln!(
+                            "Output size limit ({:?} bytes) exceeded. The ripgrep output was too large.",
+                            limit
+                        );
+                        std::process::exit(3);
+                    }
+                }
+                rg_output.push_str(&String::from_utf8_lossy(&buf[..n]));
+            }
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::Interrupted {
+                    continue;
+                }
+                anyhow::bail!("Error reading rg output: {}", e);
+            }
+        };
+    }
+
+    let status = child.wait()?;
+    if !status.success() && status.code() != Some(1) {
+        let mut stderr_bytes = Vec::new();
+        let _ = std::io::Read::read_to_end(&mut stderr, &mut stderr_bytes);
+        let stderr_str = String::from_utf8_lossy(&stderr_bytes);
+        assert!(status.code().unwrap() == 2);
+        anyhow::bail!("rg exited with {}: {}", status, stderr_str);
+    }
+
+    Ok(rg_output)
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
     args.validate()?;
@@ -390,18 +477,14 @@ fn main() -> Result<()> {
         rg_cmd.arg(path);
     }
 
-    let output = rg_cmd.output();
-    match output {
-        Ok(_) => {}
-        Err(e) => {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                anyhow::bail!("Error: rg is not installed.");
-            } else {
-                anyhow::bail!("Failed to execute rg: {e}");
-            }
-        }
-    }
-    let rg_output = String::from_utf8_lossy(&output.unwrap().stdout).into_owned();
+    let size_limit = args
+        .output_size_limit
+        .as_ref()
+        .map(|s| parse_size_limit(s))
+        .transpose()?;
+
+    let rg_output = run_rg(&mut rg_cmd, size_limit)?;
+
     if rg_output.trim().is_empty() {
         eprintln!("No results found.");
         std::process::exit(0);

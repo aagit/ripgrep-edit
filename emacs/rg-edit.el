@@ -99,6 +99,7 @@ This prepares the buffer for AI rewriting by selecting all content."
 	   "-e" regexp
 	   "-E" "emacsclient"
 	   "--dump-on-error"
+	   "--output-size-limit=100m"
 	   (if (and (fboundp 'gptel--model-capable-p)
 		      (gptel--model-capable-p 'gbnf))
 	       "--gbnf" "")
