@@ -2,12 +2,13 @@
 // Copyright (C) 2025  Red Hat, Inc.
 
 use either::Either;
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
 use textdistance::Algorithm;
 
 use crate::Args;
-use crate::FileRanges;
+use crate::{FileRange, FileRanges};
 
 fn __quote_char(c: char, in_range: bool) -> String {
     match c {
@@ -247,14 +248,115 @@ fn push_control_line(file_rule: &mut String, control_line: &str) {
     file_rule.push_str("\" [\\n] \n");
 }
 
+fn find_control_lines_parallel(
+    file_ranges: &mut FileRanges,
+    args: &Args,
+) -> Result<(), anyhow::Error> {
+    let num_cpus = if args.threads == 0 {
+        num_cpus::get()
+    } else {
+        args.threads.try_into().unwrap()
+    };
+
+    let before_context = args.context.max(args.before_context) as usize;
+    let after_context = args.context.max(args.after_context) as usize;
+
+    // Define a closure to process a single range
+    let process_range = |range: &FileRange| -> (Option<String>, Option<String>, usize, usize) {
+        let lines = &range.lines;
+        let before_context = range.before_context.saturating_sub(before_context);
+        let after_context = range.after_context.saturating_sub(after_context);
+
+        let control_lines_before = &lines[..before_context];
+        let control_lines_after = &lines[lines.len() - after_context..];
+
+        let control_line_before = find_control_line(lines, control_lines_before, false);
+        let control_line_after = find_control_line(lines, control_lines_after, true);
+
+        let control_line_before_index = if let Some(control_line) = control_line_before {
+            control_lines_before
+                .iter()
+                .rposition(|line| line == control_line)
+                .unwrap()
+        } else {
+            control_lines_before.len()
+        };
+
+        let control_line_after_index = if let Some(control_line) = control_line_after {
+            control_lines_after.len()
+                - control_lines_after
+                    .iter()
+                    .position(|line| line == control_line)
+                    .unwrap()
+                - 1
+        } else {
+            control_lines_after.len()
+        };
+
+        (
+            control_line_before.cloned(),
+            control_line_after.cloned(),
+            control_line_before_index,
+            control_line_after_index,
+        )
+    };
+
+    // Process all ranges sequentially
+    let all_ranges: Vec<_> = file_ranges.hash.values().flatten().collect();
+
+    // Process ranges in parallel if num_threads > 1, otherwise process sequentially
+    let results: Vec<_> = if num_cpus > 1 {
+        // Create a thread pool with limited parallelism
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(num_cpus)
+            .build()
+            .unwrap();
+
+        // Process all ranges in parallel using the configured thread pool
+        pool.install(|| {
+            all_ranges
+                .par_iter()
+                .cloned()
+                .map(process_range)
+                .collect::<Vec<_>>()
+        })
+    } else {
+        all_ranges
+            .into_iter()
+            .map(process_range)
+            .collect::<Vec<_>>()
+    };
+
+    // Update ranges using stable iteration
+    let mut result_index = 0;
+    for ranges in file_ranges.hash.values_mut() {
+        for range in ranges.iter_mut() {
+            let result: &(Option<String>, Option<String>, usize, usize) = &results[result_index];
+            let (
+                control_line_before,
+                control_line_after,
+                control_line_before_index,
+                control_line_after_index,
+            ) = result;
+            range.control_line_before = control_line_before.clone();
+            range.control_line_after = control_line_after.clone();
+            range.control_line_before_index = *control_line_before_index;
+            range.control_line_after_index = *control_line_after_index;
+            result_index += 1;
+        }
+    }
+
+    Ok(())
+}
+
 pub fn generate_gbnf_file(
     file: &mut File,
     file_ranges: &mut FileRanges,
     args: &Args,
 ) -> Result<(), anyhow::Error> {
+    find_control_lines_parallel(file_ranges, args)?;
+
     let mut file_rules = Vec::new();
-    let before_context = args.context.max(args.before_context) as usize;
-    let after_context = args.context.max(args.after_context) as usize;
 
     for (filename, ranges) in &mut file_ranges.hash {
         assert!(!ranges.is_empty());
@@ -266,38 +368,17 @@ pub fn generate_gbnf_file(
 
         for range in ranges {
             // Generate rules for each snippet
-            let lines = &range.lines.clone();
-            let before_context = range.before_context.saturating_sub(before_context);
-            let after_context = range.after_context.saturating_sub(after_context);
+            let control_line_before = range.control_line_before.as_ref();
+            let control_line_after = range.control_line_after.as_ref();
 
-            let control_lines_before = &lines[..before_context];
-            let control_lines_after = &lines[lines.len() - after_context..];
-            let control_line_before = find_control_line(lines, control_lines_before, false);
-            let control_line_after = find_control_line(lines, control_lines_after, true);
-
-            let index = if let Some(control_line) = control_line_before {
+            if let Some(control_line) = control_line_before {
                 push_control_line(&mut file_rule, control_line);
-
-                control_lines_before
-                    .iter()
-                    .rposition(|line| line == control_line)
-                    .unwrap()
-            } else {
-                control_lines_before.len()
-            };
+            }
+            let index = range.control_line_before_index;
             range.start += index;
             range.lines.drain(..index);
 
-            let index = if let Some(control_line) = control_line_after {
-                control_lines_after.len()
-                    - control_lines_after
-                        .iter()
-                        .position(|line| line == &control_line.to_string())
-                        .unwrap()
-                    - 1
-            } else {
-                control_lines_after.len()
-            };
+            let index = range.control_line_after_index;
             range.end -= index;
             range.lines.drain(range.lines.len() - index..);
 

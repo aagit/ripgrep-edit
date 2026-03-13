@@ -25,13 +25,17 @@ impl Args {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct FileRange {
     start: usize,
     end: usize,
     lines: Vec<String>,
     before_context: usize,
     after_context: usize,
+    control_line_before: Option<String>,
+    control_line_after: Option<String>,
+    control_line_before_index: usize,
+    control_line_after_index: usize,
 }
 
 impl FileRange {
@@ -48,6 +52,10 @@ impl FileRange {
             lines,
             before_context,
             after_context,
+            control_line_before: None,
+            control_line_after: None,
+            control_line_before_index: 0,
+            control_line_after_index: 0,
         }
     }
 }
