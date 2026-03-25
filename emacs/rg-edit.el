@@ -86,13 +86,13 @@ This prepares the buffer for AI rewriting by selecting all content."
 (defun rg-edit--run-command (regexp path extra-args)
   "Run rg-edit with REGEXP, PATH, and EXTRA-ARGS."
   (let* ((path-dir (directory-file-name path))
-	 (default-directory (file-name-directory path-dir))
 	 (dir-name (file-name-nondirectory path-dir))
 	 (rg-buffer (get-buffer-create "*rg-edit*" t)))
     (save-some-buffers
      nil (lambda () (string-prefix-p (file-truename dir-name)
 				     (file-truename (buffer-file-name)))))
     (rg-edit--setup-buffer rg-buffer)
+    (cd (file-name-directory path-dir))
     (apply #'start-process "rg-edit"
 	   rg-buffer
 	   rg-edit-executable
