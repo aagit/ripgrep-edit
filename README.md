@@ -103,9 +103,14 @@ Do not ask clarification.
 
 ## rg-edit.el
 
-- Provides `rg-edit`, `rg-edit-git`, `rg-edit-git-conflicts` functions
-- `rg-edit-git` **C-c r**
-- `rg-edit-git-conflicts` **C-u C-c r**
+- Provides `rg-edit`, `rg-edit-buffer`, `rg-edit-git`, `rg-edit-git-conflicts` functions
+- Keybindings:
+  - `rg-edit-git` **C-c r**
+  - `rg-edit` **C-0 C-c r**
+  - `rg-edit-buffer` **C-- C-c r**
+  - `rg-edit-git-conflicts` **C-u C-c r**
+  - `rg-edit--commit` **C-c C-c** (in rg-edit buffer)
+  - `rg-edit--abort` **C-c C-k** (in rg-edit buffer)
 
 ```elisp
 (add-to-list 'load-path "~/.../ripgrep-edit/emacs/")

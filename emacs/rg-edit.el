@@ -114,6 +114,12 @@ This prepares the buffer for AI rewriting by selecting all content."
 	  (file-name-directory buffer-file)
 	default-directory)))
 
+(defun rg-edit--get-buffer-path (path buffer-file)
+  "Get the search path for rg-edit, using PATH or buffer file location."
+  (or path
+      buffer-file
+      default-directory))
+
 (defun rg-edit--get-git-path (path buffer-file)
   "Get the git repository root as search path for rg-edit, using PATH or buffer file location."
   (or path
@@ -149,6 +155,11 @@ This prepares the buffer for AI rewriting by selecting all content."
   (interactive)
   (rg-edit--invoke nil nil nil #'rg-edit--get-path t))
 
+(defun rg-edit-buffer ()
+  "Invoke rg-edit with the path in the current buffer."
+  (interactive)
+  (rg-edit--invoke nil nil nil #'rg-edit--get-buffer-path nil))
+
 (defun rg-edit-git-conflicts ()
   "Invoke rg-edit-git with regex and extra-args preset to edit git conflicts."
   (interactive)
@@ -161,6 +172,8 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
   (interactive "p")
   (cond
    ((= arg 1) (rg-edit--invoke nil nil nil #'rg-edit--get-git-path nil))
+   ((= arg 0) (rg-edit))
+   ((= arg -1) (rg-edit-buffer))
    ((= arg 4) (rg-edit-git-conflicts))))
 
 (defun rg-edit--warn-if-auto-revert-disabled ()
