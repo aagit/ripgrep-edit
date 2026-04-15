@@ -44,6 +44,12 @@ This prepares the buffer for AI rewriting by selecting all content."
   :type 'boolean
   :group 'rg-edit)
 
+(defcustom rg-edit-prefill-extra-args "--multiline --multiline-dotall --smart-case"
+  "Prefill the rg-edit commands extra-args parameter with this value.
+These extra arguments are used only if the extra-args parameter is otherwise nil."
+  :type 'string
+  :group 'rg-edit)
+
 (defvar rg-edit--history-regexp nil "History for rg-edit regexp patterns.")
 (defvar rg-edit--history-extra-args nil "History for rg-edit extra-args.")
 
@@ -56,7 +62,9 @@ This prepares the buffer for AI rewriting by selecting all content."
 
 (defun rg-edit--collect-extra-args (extra-args)
   "Collect extra arguments for rg-edit command."
-  (let ((extra-args (read-string "Extra args: " extra-args 'rg-edit--history-extra-args)))
+  (let ((extra-args (read-string "Extra args: "
+                                  (or extra-args rg-edit-prefill-extra-args)
+                                  'rg-edit--history-extra-args)))
     (unless (string-empty-p extra-args)
       extra-args)))
 
