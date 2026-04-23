@@ -94,13 +94,19 @@ These extra arguments are used only if the extra-args parameter is otherwise nil
 (defun rg-edit--run-command (regexp path extra-args)
   "Run rg-edit with REGEXP, PATH, and EXTRA-ARGS."
   (let* ((path-dir (directory-file-name path))
+	 (default-directory (file-name-directory path-dir))
 	 (dir-name (file-name-nondirectory path-dir))
-	 (rg-buffer (get-buffer-create "*rg-edit*" t)))
+	 (rg-buffer (get-buffer-create "*rg-edit*" t))
+	 (gbnf (when (and (fboundp 'gptel--model-capable-p)
+			  (gptel--model-capable-p 'gbnf))
+		 "--gbnf"))
+	 (extra-args (concat gbnf
+			     (when (and gbnf extra-args) " ")
+			     extra-args)))
     (save-some-buffers
      nil (lambda () (string-prefix-p (file-truename dir-name)
 				     (file-truename (buffer-file-name)))))
     (rg-edit--setup-buffer rg-buffer)
-    (cd (file-name-directory path-dir))
     (apply #'start-process "rg-edit"
 	   rg-buffer
 	   rg-edit-executable
@@ -108,12 +114,8 @@ These extra arguments are used only if the extra-args parameter is otherwise nil
 	   "-E" "emacsclient"
 	   "--dump-on-error"
 	   "--output-size-limit=100m"
-	   (if (and (fboundp 'gptel--model-capable-p)
-		      (gptel--model-capable-p 'gbnf))
-	       "--gbnf" "")
 	   (shell-quote-argument dir-name)
-	   (when extra-args
-	     (split-string-shell-command extra-args)))))
+	   (split-string-shell-command extra-args))))
 
 (defun rg-edit--get-path (path buffer-file)
   "Get the search path for rg-edit, using PATH or buffer file location."
