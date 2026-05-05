@@ -44,7 +44,7 @@ This prepares the buffer for AI rewriting by selecting all content."
   :type 'boolean
   :group 'rg-edit)
 
-(defcustom rg-edit-prefill-extra-args "--multiline --multiline-dotall --smart-case"
+(defcustom rg-edit-prefill-extra-args "-U --multiline-dotall --smart-case"
   "Prefill the rg-edit commands extra-args parameter with this value.
 These extra arguments are used only if the extra-args parameter is otherwise nil."
   :type 'string
@@ -115,7 +115,7 @@ These extra arguments are used only if the extra-args parameter is otherwise nil
 	   "--dump-on-error"
 	   "--output-size-limit=100m"
 	   (shell-quote-argument dir-name)
-	   (split-string-shell-command extra-args))))
+	   (split-string-shell-command (string-trim extra-args)))))
 
 (defun rg-edit--get-path (path buffer-file)
   "Get the search path for rg-edit, using PATH or buffer file location."
