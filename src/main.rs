@@ -805,36 +805,25 @@ fn print_processed_lines(lines: &[String]) {
 mod tests {
     #[test]
     fn test_rg_edit_search() {
-        let output = std::process::Command::new("cargo")
-            .args(&[
-                "run",
-                "--",
-                "--regexp",
-                "context_separator",
-                "src",
-                "--editor",
-                "cat",
-                "--context=1",
-                "--filename-prefix",
-                "-- TEST: ",
-            ])
-            .output()
-            .expect("Failed to execute rg-edit");
+        use assert_cmd::Command;
 
-        let output_str = String::from_utf8_lossy(&output.stdout);
-        let error_str = String::from_utf8_lossy(&output.stderr);
+        let mut cmd = Command::cargo_bin(env!("CARGO_BIN_NAME")).unwrap();
+        cmd.arg("--regexp")
+            .arg("context_separator")
+            .arg("src")
+            .arg("--editor")
+            .arg("cat")
+            .arg("--context")
+            .arg("1")
+            .arg("--filename-prefix")
+            .arg("-- TEST: ");
 
-        // Ensure rg-edit ran successfully
-        assert!(
-            output.status.success(),
-            "Command failed with: {}",
-            error_str
-        );
-
-        // Check that the output contains the expected lines
-        assert!(output_str.contains("src/main.rs"));
-        assert!(output_str.contains("context_separa"));
-        assert!(error_str.contains("File was not modified"));
+        let assert = cmd.assert();
+        assert
+            .success()
+            .stdout(predicates::str::contains("src/main.rs"))
+            .stdout(predicates::str::contains("context_separa"))
+            .stderr(predicates::str::contains("File was not modified"));
     }
 }
 
