@@ -415,10 +415,20 @@ pub fn generate_gbnf_file(
     let mut gbnf_content = String::new();
     gbnf_content.push_str("root ::= \"```\\n\" ( ");
     gbnf_content.push_str(&file_rules.join(" |\n"));
-    gbnf_content.push_str(&format!(
-        " ){{1,{}}} \"```\"\n",
-        file_ranges.filenames.len()
-    ));
+    if false {
+        gbnf_content.push_str(&format!(
+            " ){{1,{}}} \"```\"\n",
+            file_ranges.filenames.len()
+        ));
+    } else {
+        /*
+         * The DoS fixes in llama.cpp
+         * 990e4d96980d0b016a2b07049cc9031642fb9903 rightfully had to
+         * enforce some limits for repetitions, while unlimited
+         * repetitions aren't bound.
+         */
+        gbnf_content.push_str(" )+ \"```\"\n");
+    }
 
     gbnf_content.push_str("prefix ::= \"");
     gbnf_content.push_str(
