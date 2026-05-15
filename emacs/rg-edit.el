@@ -103,7 +103,7 @@ These extra arguments are used only if the extra-args parameter is otherwise nil
 			     (when (and gbnf extra-args) " ")
 			     extra-args)))
     (save-some-buffers
-     nil (lambda () (string-prefix-p (file-truename dir-name)
+     nil (lambda () (string-prefix-p (file-truename path-dir)
 				     (file-truename (buffer-file-name)))))
     (rg-edit--setup-buffer rg-buffer)
     (cd (file-name-directory path-dir))
