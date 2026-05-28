@@ -35,21 +35,21 @@ Use Emacs to edit ripgrep search results across multiple files.
 %cargo_prep
 
 %generate_buildrequires
-%cargo_generate_buildrequires -n -f textdistance
+%cargo_generate_buildrequires
 
 %build
-%cargo_build -n -f textdistance
-%{cargo_license_summary -n -f textdistance}
-%{cargo_license -n -f textdistance} > LICENSE.dependencies
+%cargo_build
+%{cargo_license_summary}
+%{cargo_license} > LICENSE.dependencies
 
 %install
-%cargo_install -n -f textdistance
+%cargo_install
 install -m0644 -D emacs/rg-edit.el %{buildroot}%{_emacs_sitestartdir}/rg-edit-init.el
 install -m0644 -D -t %{buildroot}%{_mandir}/man1/ target/rpm/build/%{name}-*/man/*.1
 
 %if %{with check}
 %check
-%cargo_test -n -f textdistance
+%cargo_test
 %endif
 
 %files

@@ -134,22 +134,6 @@ macro_rules! filter_unique {
     };
 }
 
-fn compute_distance(a: &str, b: &str) -> f64 {
-    #[cfg(feature = "triple_accel")]
-    {
-        let max_len = a.len().max(b.len());
-        if max_len == 0 {
-            return 0.0;
-        }
-        let dist = triple_accel::rdamerau(a.as_bytes(), b.as_bytes()) as f64;
-        dist / max_len as f64
-    }
-    #[cfg(not(feature = "triple_accel"))]
-    {
-        textdistance::nstr::damerau_levenshtein_restricted(a, b)
-    }
-}
-
 pub fn find_distant_control_line<'a>(
     lines: &'a [String],
     control_lines: &'a [String],
@@ -193,7 +177,8 @@ pub fn find_distant_control_line<'a>(
             let dist = match dist {
                 Some(dist) => *dist,
                 None => {
-                    let dist = compute_distance(control_line, line);
+                    let dist =
+                        textdistance::nstr::damerau_levenshtein_restricted(control_line, line);
                     //println!("{}\n{}\n{}\n", dist, control_line, line);
                     seen.insert(key, dist);
                     dist

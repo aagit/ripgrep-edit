@@ -12,15 +12,11 @@ keywords = ["ripgrep", "rg", "gptel", "gptel-rewrite", "llm"]
 tempfile = "3.23"
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
+textdistance = "1.1"
 either = "1.15"
 ctrlc = { version = "3.5", features = ["termination"] }
 rayon = "1"
 num_cpus = "1"
-triple_accel = { version = "0.4", optional = true }
-textdistance = { version = "1.1", optional = true }
-
-[features]
-default = ["triple_accel"]
 
 [[bin]]
 name = "rg-edit"

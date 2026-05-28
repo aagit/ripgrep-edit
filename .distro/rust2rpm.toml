@@ -1,3 +1,0 @@
-[features]
-disable-default = true
-enable = [ "textdistance" ]
