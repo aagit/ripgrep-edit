@@ -85,19 +85,26 @@ These extra arguments are used only if the extra-args parameter is otherwise nil
       (define-key map (kbd "C-c C-k") #'rg-edit--terminate)
       (use-local-map map)))
   (insert "C-c C-k on this buffer will close it and terminate any outstanding rg-edit session\n\n")
-  (when (and (fboundp 'gptel--model-capable-p)
-	     (gptel--model-capable-p 'gbnf))
+  (when (rg-edit--gptel-gbnf-enabled-p)
     (insert "GBNF Grammar Enabled\n\n"))
   (with-current-buffer rg-buffer
     (visual-line-mode)))
+
+(defun rg-edit--gptel-gbnf-enabled-p ()
+  "Return non-nil if at least one configured gptel backend supports GBNF."
+  (when (fboundp 'gptel--model-capable-p)
+    (cl-loop for backend-entry in gptel--known-backends
+             for backend-value = (cdr backend-entry)
+             if (gptel-backend-p backend-value)
+             if (gptel--model-capable-p 'gbnf (intern (car backend-entry)))
+             return t)))
 
 (defun rg-edit--run-command (regexp path extra-args)
   "Run rg-edit with REGEXP, PATH, and EXTRA-ARGS."
   (let* ((path-dir (directory-file-name path))
 	 (dir-name (file-name-nondirectory path-dir))
 	 (rg-buffer (get-buffer-create "*rg-edit*" t))
-	 (gbnf (when (and (fboundp 'gptel--model-capable-p)
-			  (gptel--model-capable-p 'gbnf))
+	 (gbnf (when (rg-edit--gptel-gbnf-enabled-p)
 		 "--gbnf"))
 	 (extra-args (concat gbnf
 			     (when (and gbnf extra-args) " ")
@@ -220,9 +227,8 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
     (gptel-abort (current-buffer))))
 
 (defun rg-edit--gbnf ()
-  "Read the .gbnf file and inject its contents into the JSON as the 'gbnf' field."
-  (when (and (fboundp 'gptel--model-capable-p)
-	     (gptel--model-capable-p 'gbnf))
+  "Read the .gbnf file and inject its contents into the JSON as the 'grammar' field."
+  (when (rg-edit--gptel-gbnf-enabled-p)
     (when-let* ((buffer-file (buffer-file-name))
                 (gbnf-path (concat buffer-file ".gbnf"))
                 (gbnf-content (when (file-exists-p gbnf-path)
@@ -230,8 +236,15 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
                                   (insert-file-contents gbnf-path)
                                   (buffer-string)))))
       (when gbnf-content
+        (add-hook 'gptel-prompt-transform-functions #'rg-edit--gptel-clear-gbnf)
         (setq-local gptel--request-params
                     (plist-put gptel--request-params :grammar gbnf-content))))))
+
+(defun rg-edit--gptel-clear-gbnf ()
+  "If the model doesn't support GBNF, clear the grammar from the request."
+  (unless (and (fboundp 'gptel--model-capable-p)
+               (gptel--model-capable-p 'gbnf))
+    (cl-remf gptel--request-params :grammar)))
 
 (defun rg-edit--commit ()
   "Commit changes made in the rg-edit buffer."
