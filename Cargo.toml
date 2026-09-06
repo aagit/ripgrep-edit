@@ -23,7 +23,7 @@ name = "rg-edit"
 path = "src/main.rs"
 
 [build-dependencies]
-clap_mangen = "0.2"
+clap_mangen = ">=0.2,<0.4"
 clap = { version = "4.5", features = ["derive"] }
 
 [dev-dependencies]
