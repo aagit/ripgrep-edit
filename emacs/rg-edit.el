@@ -96,7 +96,8 @@ These extra arguments are used only if the extra-args parameter is otherwise nil
     (cl-loop for backend-entry in gptel--known-backends
              for backend-value = (cdr backend-entry)
              if (gptel-backend-p backend-value)
-             if (gptel--model-capable-p 'gbnf (intern (car backend-entry)))
+             if (or (gptel--model-capable-p 'gbnf (intern (car backend-entry)))
+                    (gptel--model-capable-p 'ebnf (intern (car backend-entry))))
              return t)))
 
 (defun rg-edit--run-command (regexp path extra-args)
@@ -228,23 +229,30 @@ With a C-u prefix argument invoke rg-edit-git-conflicts instead."
 
 (defun rg-edit--gbnf ()
   "Read the .gbnf file and inject its contents into the JSON as the 'grammar' field."
-  (when (rg-edit--gptel-gbnf-enabled-p)
-    (when-let* ((buffer-file (buffer-file-name))
-                (gbnf-path (concat buffer-file ".gbnf"))
-                (gbnf-content (when (file-exists-p gbnf-path)
-                                (with-temp-buffer
-                                  (insert-file-contents gbnf-path)
-                                  (buffer-string)))))
-      (when gbnf-content
-        (add-hook 'gptel-prompt-transform-functions #'rg-edit--gptel-clear-gbnf)
-        (setq-local gptel--request-params
-                    (plist-put gptel--request-params :grammar gbnf-content))))))
+  (when-let* (((rg-edit--gptel-gbnf-enabled-p))
+              (buffer-file (buffer-file-name))
+              (gbnf-path (concat buffer-file ".gbnf"))
+              ((file-exists-p gbnf-path))
+              (content (with-temp-buffer
+                         (insert-file-contents gbnf-path)
+                         (buffer-string))))
+    (add-hook 'gptel-prompt-transform-functions #'rg-edit--gptel-set-gbnf)
+    (setq-local rg-edit--gbnf-content content)))
 
-(defun rg-edit--gptel-clear-gbnf ()
-  "If the model doesn't support GBNF, clear the grammar from the request."
-  (unless (and (fboundp 'gptel--model-capable-p)
-               (gptel--model-capable-p 'gbnf))
-    (cl-remf gptel--request-params :grammar)))
+(defun rg-edit--gptel-set-gbnf (fsm)
+  "Set the grammar in the request if the model supports GBNF or EBNF."
+  (when-let* (((fboundp 'gptel--model-capable-p))
+              (buf (plist-get (gptel-fsm-info fsm) :buffer))
+              (content (with-current-buffer buf
+                         (bound-and-true-p rg-edit--gbnf-content))))
+    (cond
+     ((gptel--model-capable-p 'gbnf)
+      (setq-local gptel--request-params
+                  (plist-put gptel--request-params :grammar content)))
+     ((gptel--model-capable-p 'ebnf)
+      (setq-local gptel--request-params
+                  (plist-put gptel--request-params :structured_outputs
+                             (list :grammar content)))))))
 
 (defun rg-edit--commit ()
   "Commit changes made in the rg-edit buffer."

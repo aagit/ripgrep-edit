@@ -121,23 +121,33 @@ Do not ask clarification.
   (setq-default rg-edit-executable "~/.../ripgrep-edit/target/release/rg-edit"))
 ```
 
-## GBNF Grammar Support
+## GBNF EBNF Grammar Support
 
-ripgrep-edit integrates with [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) to constrain LLM outputs when using llama.cpp as the backend. When the `--gbnf` flag is used, a `*.gbnf` grammar file is generated in the same directory as the temporary rg-edit buffer. The `rg-edit.el` plugin automatically detects this file and injects its contents into the JSON request as the `grammar` field when the gptel backend supports the `gbnf` capability.
+ripgrep-edit integrates with [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) to constrain LLM outputs when using llama.cpp or vllm. When the `--gbnf` flag is used, a `*.gbnf` grammar file is generated in the same directory as the temporary rg-edit buffer. The `rg-edit.el` plugin automatically detects this file and injects its contents into the JSON request as the `grammar` field when the gptel backend supports the `gbnf` or `ebnf` capability.
 
-```
+```elisp
+;; Example: llama.cpp backend with GBNF support
 (setq-default
- gptel-model `test
+ gptel-model 'test
  gptel-backend (gptel-make-openai "test"
 		 :stream t
 		 :protocol "http"
 		 :host "localhost:8811"
-		 :models '((test :capabilities (gbnf))))
+		 :models '((test :capabilities (gbnf)))))
+
+;; Example: vLLM backend with EBNF support
+(setq-default
+ gptel-model 'vllm
+ gptel-backend (gptel-make-openai "vllm"
+		 :stream t
+		 :protocol "https"
+		 :host "localhost:443"
+		 :models '((vllm :capabilities (ebnf)))))
 ```
 
 The GBNF grammar enforces deterministic structure around the metadata markers of the rg-edit format. The LLM retains the ability to drop irrelevant files or reorder the file sequence, but the filename and its prefix are enforced to have no typos. Once inside the snippets, the GBNF grammar emits the "before context" control line (if available) and then grants the LLM free reign to modify snippet content until the LLM emits the "after context" control line or the separator. At that point, the GBNF grammar regains control, emits the separator (if not already emitted), and advances to the next snippet.
 
-When the GBNF grammar is enabled during inference, a notification appears in the `*rg-edit*` buffer.
+When the grammar is enabled during inference, a notification appears in the `*rg-edit*` buffer.
 
 > ![ripgrep-edit `"max_line_1 with GBNF"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-max_line_1-GBNF.webm)
 > ![ripgrep-edit `"usage limit with GBNF"` commit](https://gitlab.com/aarcange/ripgrep-edit-assets/-/raw/main/demo-usage_limit-GBNF.webm)
