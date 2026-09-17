@@ -640,7 +640,7 @@ fn apply_changes_to_file_ranges(
                     let original_snippet: Vec<String> = lines[start..end].to_vec();
                     if *snippet != original_snippet {
                         // Replace the range with new content
-                        lines.splice(start..end, snippet.clone().into_iter());
+                        lines.splice(start..end, snippet.clone());
                         has_changes = true;
                         changed_files = true;
                     }
