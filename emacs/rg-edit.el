@@ -1,4 +1,4 @@
-;;; rg-edit.el --- Invoke ripgrep-edit
+;;; rg-edit.el --- Invoke ripgrep-edit  -*- lexical-binding: t; -*-
 ;;; SPDX-License-Identifier: GPL-3.0-or-later OR AGPL-3.0-or-later
 
 ;; Copyright (C) 2025  Red Hat Inc.
