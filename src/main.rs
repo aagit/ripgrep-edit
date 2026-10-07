@@ -714,11 +714,11 @@ fn parse_modified_file(
                 if !pprev_line_separator {
                     return Err(anyhow::anyhow!(
                         "Missing separator before file: {}",
-                        &normalized_line
+                        normalized_line
                     ));
                 }
                 if !prev_line_empty {
-                    eprintln!("Warning: Line not empty before file: {}", &normalized_line);
+                    eprintln!("Warning: Line not empty before file: {}", normalized_line);
                 } else {
                     assert!(!current_lines.is_empty());
                 }
@@ -736,7 +736,7 @@ fn parse_modified_file(
                 if !current_lines.is_empty() {
                     eprintln!(
                         "Warning: trailing lines before first file: {}",
-                        &normalized_line
+                        normalized_line
                     );
                 } else {
                     assert!(!prev_line_empty);
